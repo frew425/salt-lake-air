@@ -9,6 +9,7 @@ Sources (all free, no API keys):
       hourly PM2.5 (bias-corrected when available), ozone, smoke
   - CAMS global model via Open-Meteo (backup hourly forecast)
   - Mixing height / wind from NOAA GFS+HRRR via Open-Meteo (inversion indicator)
+  - NWS Salt Lake City Smoke Management Forecast (official daily Clearing Index)
 
 Stdlib only so it runs on a bare GitHub Actions runner.
 Every source is optional: failures are recorded in data["errors"] and the page
@@ -45,6 +46,11 @@ STATIONS = [
 DAQ_FORECAST_RSS = "https://air.utah.gov/rssFeed.php?id=slc"
 DAQ_FORECAST_CSV = "https://air.utah.gov/csvFeed.php?id=forecast"
 NOAA_ROOT = "https://mapservices.weather.noaa.gov/raster/rest/services/air_quality"
+
+# NWS Salt Lake City Smoke Management Forecast: the official daily Clearing Index.
+# Airshed numbers are on the map at https://www.weather.gov/slc/ClearingIndex
+NWS_SMF_LIST = "https://api.weather.gov/products/types/SMF/locations/SLC"
+CLEARING_AIRSHED = 5
 
 OUT = "data.json"
 UA = "slc-air-dashboard/1.0 (personal, non-commercial; github pages)"
@@ -350,25 +356,30 @@ def fetch_met():
     base = "https://api.open-meteo.com/v1/forecast"
     params = {
         "latitude": LAT, "longitude": LON,
-        "hourly": "boundary_layer_height,wind_speed_10m,temperature_2m,precipitation_probability",
+        "hourly": "boundary_layer_height,wind_speed_10m,wind_speed_80m,temperature_2m,precipitation_probability",
         "timezone": "America/Denver", "past_days": 1, "forecast_days": 4,
         "wind_speed_unit": "mph", "temperature_unit": "fahrenheit",
     }
+    plain = dict(params, hourly=params["hourly"].replace("wind_speed_80m,", ""))
     last = None
-    for model in ("gfs_seamless", None):
+    # 80 m wind is closer to the transport wind used by the Clearing Index; if a
+    # model does not serve it, fall back to the original request.
+    for prm, model in ((params, "gfs_seamless"), (plain, "gfs_seamless"), (params, None), (plain, None)):
         try:
-            p = dict(params, models=model) if model else params
+            p = dict(prm, models=model) if model else prm
             h = json.loads(get(base, p))["hourly"]
             if all(v is None for v in h.get("boundary_layer_height", [])):
                 raise RuntimeError("boundary_layer_height all null")
             n = len(h["time"])
             precip = h.get("precipitation_probability") or [None] * n
+            wind80 = h.get("wind_speed_80m") or [None] * n
             out = []
             for i, t in enumerate(h["time"]):
                 out.append({
                     "t": iso(datetime.fromisoformat(t).replace(tzinfo=TZ)),
                     "blh_m": h["boundary_layer_height"][i],
                     "wind_mph": h["wind_speed_10m"][i],
+                    "wind80_mph": wind80[i],
                     "temp_f": h["temperature_2m"][i],
                     "precip_pct": precip[i],
                 })
@@ -377,6 +388,81 @@ def fetch_met():
             last = e
     record_error("Mixing height / Open-Meteo weather", last)
     return None
+
+
+# --------------------------------------------------------- Clearing Index ----
+WEEKDAYS = ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY"]
+
+
+def parse_clearing(text, airshed, issued):
+    """Pull one airshed's daily Clearing Index out of the NWS Smoke Management Forecast text."""
+    m = re.search(r"\.\.\.AIR ?SHED %d\.\.\.(.*?)(?=\.\.\.AIR ?SHED \d+\.\.\.|\$\$|\Z)" % airshed, text, re.S | re.I)
+    if not m:
+        raise RuntimeError(f"airshed {airshed} not found in product")
+    days, cur, seen = [], None, set()
+    for line in m.group(1).splitlines():
+        s = line.strip()
+        d = re.match(r"^\.?([A-Z][A-Z ]*?)\.\.\.$", s)
+        if d:
+            label = d.group(1).strip().upper()
+            if label in ("TODAY", "TONIGHT", "REST OF TODAY", "THIS AFTERNOON"):
+                date = issued.date()
+            elif label == "TOMORROW":
+                date = issued.date() + timedelta(days=1)
+            elif label in WEEKDAYS:
+                ahead = (WEEKDAYS.index(label) - issued.weekday()) % 7 or 7
+                date = issued.date() + timedelta(days=ahead)
+            else:
+                cur = None
+                continue
+            cur = {"date": date.isoformat(), "label": label.title()}
+            continue
+        if cur is None:
+            continue
+        k = re.match(r"^(Afternoon Mixing Height|Transport Winds|Clearing Index)\.+\s*(.+)$", s, re.I)
+        if not k:
+            continue
+        key, val = k.group(1).lower(), k.group(2).strip()
+        if key.startswith("afternoon"):
+            cur["mixing_ft_asl"] = fnum(val.replace(",", ""))
+        elif key.startswith("transport"):
+            cur["transport_wind"] = val
+        else:
+            n = re.match(r"^(\d+)\s*(\+?)", val)
+            if n and cur["date"] not in seen:
+                cur["index"] = int(n.group(1))
+                cur["plus"] = bool(n.group(2))
+                seen.add(cur["date"])
+                days.append(cur)
+            cur = None
+    if not days:
+        raise RuntimeError(f"no Clearing Index values for airshed {airshed}")
+    return days
+
+
+def fetch_clearing(now):
+    try:
+        listing = json.loads(get(NWS_SMF_LIST))
+        items = listing.get("@graph") or listing.get("features") or []
+        if not items:
+            raise RuntimeError("no Smoke Management Forecast products listed")
+        first = items[0]
+        url = first.get("@id") or first.get("id")
+        if not str(url).startswith("http"):
+            url = "https://api.weather.gov/products/" + str(first.get("id"))
+        prod = json.loads(get(url))
+        text = prod.get("productText") or ""
+        stamp = prod.get("issuanceTime") or first.get("issuanceTime")
+        issued = datetime.fromisoformat(stamp.replace("Z", "+00:00")).astimezone(TZ) if stamp else now
+        return {
+            "airshed": CLEARING_AIRSHED,
+            "issued": iso(issued),
+            "source": "NWS Salt Lake City Smoke Management Forecast",
+            "days": parse_clearing(text, CLEARING_AIRSHED, issued),
+        }
+    except Exception as e:  # noqa: BLE001
+        record_error("Clearing Index / NWS", e)
+        return None
 
 
 # ------------------------------------------------------------ resilience ----
@@ -396,6 +482,9 @@ def reuse_previous(data, now):
     for key in ("cams", "met"):
         if not data.get(key) and still_useful(prev.get(key)):
             data[key] = dict(prev[key], stale_from=stamp)
+    pc = prev.get("clearing")
+    if not data.get("clearing") and pc and any(d.get("date", "") >= now.date().isoformat() for d in pc.get("days", [])):
+        data["clearing"] = dict(pc, stale_from=stamp)
     for key in ("pm25", "o3", "smoke"):
         if key not in data["noaa"] and still_useful((prev.get("noaa") or {}).get(key)):
             data["noaa"][key] = dict(prev["noaa"][key], stale_from=stamp)
@@ -431,6 +520,7 @@ def main():
         "daq_forecast": fetch_daq_forecast(),
         "cams": fetch_cams(),
         "met": fetch_met(),
+        "clearing": fetch_clearing(now),
     }
     data["noaa"] = fetch_noaa(now)  # slowest source goes last
     reuse_previous(data, now)

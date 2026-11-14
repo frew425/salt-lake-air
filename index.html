@@ -82,7 +82,7 @@ h1, h2, h3, p { margin: 0; }
 .h-cat h1.sm { font-size: 34px; letter-spacing: -.025em; line-height: 1.08; }
 .aqi { display: flex; align-items: center; gap: 18px; margin-top: 10px; }
 .aqi .num { font-size: 60px; font-weight: 500; letter-spacing: -.04em; line-height: 1; }
-.aqi .lbl { font-size: 12px; font-weight: 500; color: var(--fg-2); margin-top: 4px; }
+.aqi .lbl { display: flex; align-items: center; gap: 2px; font-size: 12px; font-weight: 500; color: var(--fg-2); margin-top: 0; white-space: nowrap; }
 .aqi .r { display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 0; }
 .aqi .of { font-size: 13px; color: var(--fg-15); }
 .aqi .of b { font-weight: 600; color: var(--fg); }
@@ -173,6 +173,12 @@ dialog.sheet[open] { animation: up .22s ease-out; } @keyframes up { from { trans
 /* ------------------------------------------------------------------ tooltip */
 .tip { position: fixed; z-index: 30; pointer-events: none; min-width: 150px; padding: 9px 12px; border-radius: 10px; font-size: 12px; background: var(--fg); color: var(--bg); opacity: 0; transition: opacity .1s; }
 .tip.on { opacity: 1; }
+.tip.note { max-width: 270px; padding: 10px 12px; font-size: 13px; line-height: 1.5; }
+.info { position: relative; width: 28px; height: 28px; padding: 0; border: 0; background: none; display: inline-grid; place-items: center; color: var(--fg-2); cursor: pointer; border-radius: 50%; flex: none; }
+.info::after { content: ""; position: absolute; inset: -8px; }
+.info:hover { color: var(--fg); }
+.info svg { width: 15px; height: 15px; }
+.head .l { display: flex; align-items: center; gap: 2px; }
 .tip .h { opacity: .7; margin-bottom: 4px; }
 .tip .r { display: flex; align-items: center; gap: 8px; line-height: 1.75; }
 .tip .r .x { margin-left: auto; padding-left: 14px; font-weight: 500; }
@@ -197,7 +203,7 @@ dialog.sheet[open] { animation: up .22s ease-out; } @keyframes up { from { trans
     <div class="stats" id="stats"></div>
 
     <section class="sec">
-      <div class="head"><h2>Next 24 hours</h2><div class="meta" id="best"></div></div>
+      <div class="head"><div class="l"><h2>Next 24 hours</h2><button class="info" id="i24" type="button" aria-label="About the hourly forecast"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" aria-hidden="true"><circle cx="8" cy="8" r="6.2"/><path d="M8 7.4v3.4"/><circle cx="8" cy="5.1" r=".5" fill="currentColor"/></svg></button></div><div class="meta" id="best"></div></div>
       <div id="h24"></div>
     </section>
 
@@ -207,15 +213,14 @@ dialog.sheet[open] { animation: up .22s ease-out; } @keyframes up { from { trans
     </section>
 
     <section class="sec">
-      <div class="head"><h2>3-day outlook</h2><div class="meta" id="unit"></div></div>
+      <div class="head"><div class="l"><h2>3-day outlook</h2><button class="info" id="i3" type="button" aria-label="About this chart"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" aria-hidden="true"><circle cx="8" cy="8" r="6.2"/><path d="M8 7.4v3.4"/><circle cx="8" cy="5.1" r=".5" fill="currentColor"/></svg></button></div><div class="meta" id="unit"></div></div>
       <div class="seg" role="group" aria-label="Metric">
         <button type="button" data-m="pm" aria-pressed="true">PM2.5</button>
         <button type="button" data-m="o3" aria-pressed="false">Ozone</button>
-        <button type="button" data-m="mix" aria-pressed="false">Mixing</button>
+        <button type="button" data-m="mix" aria-pressed="false">Inversion</button>
       </div>
       <div class="legend" id="legend"></div>
       <div class="chart" id="chart"></div>
-      <p class="small" id="note"></p>
     </section>
 
     <section class="sec">
@@ -252,6 +257,7 @@ dialog.sheet[open] { animation: up .22s ease-out; } @keyframes up { from { trans
         <div><div class="t">NOAA air quality forecast</div><div class="d">Hourly PM2.5, ozone and smoke from the National Air Quality Forecast Capability, bias-corrected when available.</div></div>
         <div><div class="t">CAMS global model</div><div class="d">A second-opinion hourly forecast via Open-Meteo. It also fills any hours NOAA is missing.</div></div>
         <div><div class="t">Mixing height and wind</div><div class="d">NOAA GFS and HRRR weather models via Open-Meteo. Mixing height is how deep the layer of air is that pollution mixes into.</div></div>
+        <div><div class="t">NWS Clearing Index</div><div class="d">The official daily ventilation forecast from the National Weather Service in Salt Lake City, the number Utah uses to regulate open burning<span id="shed"></span>.</div></div>
       </div>
     </div>
     <div>
@@ -260,7 +266,8 @@ dialog.sheet[open] { animation: up .22s ease-out; } @keyframes up { from { trans
         <p><b>AQI.</b> The big number is the US AQI for fine particles (PM2.5), using EPA's current breakpoints, where 0 to 9 µg/m³ is Good. It uses EPA's NowCast: a weighted average of the last 12 hours that leans on the most recent ones when levels are changing fast.</p>
         <p><b>Hourly forecast.</b> The next 24 hours use NOAA's hourly PM2.5 wherever it has a value, with the calibrated CAMS model filling gaps. Each hour is converted to AQI the same way.</p>
         <p><b>CAMS calibration.</b> CAMS is a coarse global model and often misreads the valley. Its PM2.5 is scaled by how it compared with the home monitor over the last 24 hours<span id="cal"></span>.</p>
-        <p><b>Trapped air.</b> The strip under the charts shows mixing height. It gets darker as the layer gets shallower: under about 1,200 m, 700 m and 300 m. An inversion is called weak when the day's peak mixing height stays under 900 m and strong under 400 m.</p>
+        <p><b>Inversion and trapped air.</b> An inversion is a lid of warm air that traps cold air and pollution in the valley. Utah measures how well the valley can flush that out with the Clearing Index: mixing depth in hundreds of feet, multiplied by the wind through that layer in knots. NWS and Utah DAQ treat under 500 as poor ventilation, 500 to 1,000 as moderate and 1,000 or more as excellent. Open burning is restricted below 500 under Utah rule R307-202, which also uses 250 as its lowest winter cut-off. This page shows an inversion as likely under 250, possible from 250 to 500, and none at 500 or more.</p>
+        <p><b>Official versus estimated.</b> The Inversion tile shows the official NWS afternoon value when it is available. The hourly strip and the Inversion chart are this page's own estimate from model mixing height and wind about 80 m above ground, so they will not match NWS exactly.</p>
         <p><b>Best time outside.</b> The two-hour window with the lowest forecast PM2.5 that starts between 6 AM and 8 PM.</p>
         <p><b>Smoke and ozone levels.</b> Smoke is Light from 2 µg/m³, Moderate from 10 and Heavy from 35. Ozone is Moderate from 55 ppb, High from 71 and Very high from 86.</p>
         <p><b>Updates.</b> Data refreshes once an hour. If a source fails, the last good copy is kept while it still covers the hours ahead, and the failure is listed under Status.</p>
@@ -270,6 +277,8 @@ dialog.sheet[open] { animation: up .22s ease-out; } @keyframes up { from { trans
     <div class="links">
       <a href="https://air.utah.gov/forecast.php?id=slc">Utah DAQ</a>
       <a href="https://airquality.weather.gov/">NOAA forecast</a>
+      <a href="https://www.weather.gov/slc/ClearingIndex">NWS Clearing Index</a>
+      <a href="https://deq.utah.gov/air-quality/regulations-for-residential-open-burning-stationary-source-compliance">Utah burning rules</a>
       <a href="https://fire.airnow.gov/">Smoke map</a>
       <a href="https://www.saltlakecounty.gov/health/air-quality/airview/">Neighborhood sensors</a>
       <a href="https://github.com/frew425/salt-lake-air">Code on GitHub</a>
@@ -324,12 +333,19 @@ const dot = c => { const d = el("span", "dot"); d.style.setProperty("--c", c); r
 const sameDay = (a, b) => a.toDateString() === b.toDateString();
 const when = d => { const now = new Date(); const tm = new Date(now); tm.setDate(now.getDate() + 1);
   return sameDay(d, now) ? fHL(d) : sameDay(d, tm) && d.getHours() < 5 ? "overnight" : sameDay(d, tm) ? fHL(d) + " tomorrow" : fDH(d); };
-const mixOp = blh => blh == null ? .06 : blh < 300 ? .9 : blh < 700 ? .5 : blh < 1200 ? .25 : .12;
+/* Clearing Index: mixing depth (hundreds of feet) x wind through that layer (knots).
+   NWS/Utah DAQ: under 500 poor, 500-1000 moderate, 1000+ excellent. R307-202 also uses 250. */
+const ciOf = m => { if (!m || m.blh_m == null) return null; const w = m.wind80_mph ?? m.wind_mph; return w == null ? null : m.blh_m * 3.28084 / 100 * w * 0.868976; };
+// [inversion word, level 1-4, rule rating]
+const ciCat = ci => ci < 250 ? ["Likely", 4, "very poor"] : ci < 500 ? ["Possible", 3, "poor"] : ci < 1000 ? ["None", 2, "moderate"] : ["None", 1, "excellent"];
+const ciFmt = ci => ci >= 1000 ? "1000+" : String(Math.round(ci / 10) * 10);
+// strip darkness: continuous, anchored to the rule (1000+ = clear), so winter afternoons still differ from nights
+const mixOp = ci => ci == null ? .06 : ci >= 1000 ? .1 : .9 - .8 * Math.sqrt(ci / 1000);
 
 /* tooltip */
 const tip = $("tip");
 function showTip(x, y, head, rows) {
-  tip.textContent = ""; tip.appendChild(el("div", "h", head));
+  tip.classList.remove("note"); tip._for = null; tip.textContent = ""; tip.appendChild(el("div", "h", head));
   for (const r of rows) { const row = el("div", "r");
     if (r.key) { const k = el("span", "key" + (r.dash ? " dash" : "")); k.style.setProperty("--c", r.key); row.appendChild(k); } else if (r.dot) row.appendChild(dot(r.dot));
     row.append(el("span", "", r.label), el("span", "x", r.value)); tip.appendChild(row); }
@@ -338,7 +354,16 @@ function showTip(x, y, head, rows) {
   tip.style.left = Math.max(8, Math.min(x - w / 2, innerWidth - w - 8)) + "px";
   tip.style.top = (y - h - 14 < 8 ? y + 18 : y - h - 14) + "px";
 }
-const hideTip = () => tip.classList.remove("on");
+const hideTip = () => { tip.classList.remove("on", "note"); tip._for = null; };
+const INFO_SVG = `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" aria-hidden="true"><circle cx="8" cy="8" r="6.2"/><path d="M8 7.4v3.4"/><circle cx="8" cy="5.1" r=".5" fill="currentColor"/></svg>`;
+function infoBtn(label, text) { const b = el("button", "info"); b.type = "button"; b.setAttribute("aria-label", label); b.dataset.info = text; b.innerHTML = INFO_SVG; return b; }
+let justClosed = null;
+document.addEventListener("pointerdown", e => { const b = e.target.closest(".info"); justClosed = b && tip._for === b ? b : null; }, true);
+document.addEventListener("click", e => { const b = e.target.closest(".info"); if (!b || !b.dataset.info || b === justClosed) return;
+  tip.textContent = b.dataset.info; tip.classList.add("on", "note"); tip._for = b; tip.setAttribute("role", "status");
+  const r = b.getBoundingClientRect(), w = tip.offsetWidth, h = tip.offsetHeight;
+  tip.style.left = Math.max(12, Math.min(r.left + r.width / 2 - w / 2, innerWidth - w - 12)) + "px";
+  tip.style.top = (r.bottom + 8 + h > innerHeight ? r.top - h - 8 : r.bottom + 8) + "px"; });
 
 /* ============================================================ data access */
 let D = null, METRIC = "pm";
@@ -402,7 +427,8 @@ function renderHero() {
   hc.append(dot(qv(cat.i)), h1); host.appendChild(hc);
 
   const a = el("div", "aqi"), l = el("div"), r = el("div", "r");
-  l.append(el("div", "num", aqi ?? "—"), el("div", "lbl", "US AQI"));
+  const lbl = el("div", "lbl", "US AQI"); lbl.appendChild(infoBtn("About this number", "The US AQI for fine particles (PM2.5), the pollutant that builds up under winter inversions. It uses EPA's NowCast, which leans on the most recent hours."));
+  l.append(el("div", "num", aqi ?? "—"), lbl);
   const of = el("div", "of"); of.append("of 500 · "); of.appendChild(el("b", "", `${cat.lo}–${cat.hi} is ${cat.short.toLowerCase()}`));
   const sc = el("div", "scale"); sc.setAttribute("role", "img"); sc.setAttribute("aria-label", `AQI scale from 0 to 500 in six bands. The current value, ${aqi}, is in the ${cat.name} band.`);
   const segs = el("div", "segs"); SCALE.forEach(c => { const i = el("i"); i.style.background = c; segs.appendChild(i); });
@@ -411,7 +437,6 @@ function renderHero() {
   sc.appendChild(segs);
   const sl = el("div", "scale-l"); sl.setAttribute("aria-hidden", "true"); CATS.forEach(k => sl.appendChild(el("div", "", k.lo)));
   r.append(of, sc, sl); a.append(l, r); host.appendChild(a);
-  host.appendChild(el("div", "small", "Measures fine particles (PM2.5), the pollutant that builds up under winter inversions."));
 
   const ins = el("p", "insight");
   for (const [x, b, c] of insightText(cat, next24())) { ins.append(x); ins.appendChild(el("b", "", b)); ins.append(c + " "); }
@@ -462,11 +487,13 @@ function renderConds() {
     if (lvl) { const p = el("div", "pips"); p.setAttribute("role", "img"); p.setAttribute("aria-label", `${k} level ${lvl} of 4`); p.style.setProperty("--c", qv(lvl));
       for (let i = 0; i < 4; i++) p.appendChild(el("i", i < lvl ? "on" : "")); d.appendChild(p); }
     d.appendChild(el("div", "small", s)); host.appendChild(d); };
-  // inversion
-  const met = ((D.met && D.met.series) || []).map(r => ({ t: new Date(r.t).getTime(), v: r.blh_m })).filter(p => p.v != null && p.t >= now - HOUR && p.t <= now + 24 * HOUR);
-  if (met.length) { const peak = Math.max(...met.map(p => p.v));
-    const [v, lvl] = peak < 400 ? ["Strong", 4] : peak < 900 ? ["Weak", 2] : ["None", 1];
-    add("layers", "Inversion", v, `Mixing to about ${(Math.round(peak / 50) * 50).toLocaleString()} m`, lvl);
+  // inversion, rated by the Clearing Index: official NWS Clearing Index when we have it, else our own estimate
+  const today = new Date().toLocaleDateString("en-CA"), cd = ((D.clearing && D.clearing.days) || []).filter(d => d.date >= today && d.index != null)[0];
+  const hrs = ((D.met && D.met.series) || []).map(r => ({ t: new Date(r.t).getTime(), ci: ciOf(r) })).filter(p => p.ci != null && p.t >= now - HOUR && p.t <= now + 24 * HOUR);
+  if (cd) { const [v, lvl, rate] = ciCat(cd.index);
+    add("layers", "Inversion", v, `Clearing Index ${cd.plus ? "1000+" : cd.index} (${rate})${cd.date === today ? "" : " " + cd.label.toLowerCase()}`, lvl);
+  } else if (hrs.length) { const day = hrs.filter(p => { const h = new Date(p.t).getHours(); return h >= 12 && h <= 17; }), peak = Math.max(...(day.length ? day : hrs).map(p => p.ci)), [v, lvl, rate] = ciCat(peak);
+    add("layers", "Inversion", v, `Clearing Index about ${ciFmt(peak)} (${rate})`, lvl);
   } else add("layers", "Inversion", "—", "No data");
   // smoke
   const sm = ((D.noaa && D.noaa.smoke && D.noaa.smoke.series) || []).map(r => ({ t: new Date(r.t).getTime(), v: r.v })).filter(p => p.v != null && p.t >= now && p.t <= now + 24 * HOUR);
@@ -501,20 +528,20 @@ function render24() {
     const show = () => { const r = col.getBoundingClientRect(), rows = [];
       grid.querySelectorAll(".hr.sel").forEach(e => e.classList.remove("sel")); col.classList.add("sel");
       if (x.v != null) { rows.push({ dot: qv(c.i), label: c.short, value: `AQI ${x.aqi}` }); rows.push({ label: "PM2.5", value: `${r1(x.v)} µg/m³` }); }
-      if (x.m) rows.push({ label: "Mixing height", value: `${Math.round(x.m.blh_m)} m` });
+      const ci = ciOf(x.m); if (ci != null) rows.push({ label: "Clearing Index, est.", value: `${ciFmt(ci)} · ${ciCat(ci)[2]}` });
       if (x.m && x.m.wind_mph != null) rows.push({ label: "Wind", value: `${Math.round(x.m.wind_mph)} mph` });
       showTip(r.left + r.width / 2, r.top + 20, (i === 0 ? "Now · " : "") + fDH(d), rows); };
     col.addEventListener("pointerenter", e => { if (e.pointerType === "mouse") show(); });
     col.addEventListener("pointerleave", e => { if (e.pointerType === "mouse") { hideTip(); col.classList.remove("sel"); } });
     col.addEventListener("click", show);
     grid.appendChild(col);
-    const mi = el("i"); mi.style.opacity = mixOp(x.m ? x.m.blh_m : null); mix.appendChild(mi);
+    const mi = el("i"); mi.style.opacity = mixOp(ciOf(x.m)); mix.appendChild(mi);
     if (i % 3 === 0) axis.appendChild(el("div", i === 0 ? "now" : "", i === 0 ? "Now" : fH(d)));
   });
   if (best) { const u = el("i"); u.style.gridColumn = `${best.i + 1} / span 2`; under.appendChild(u); }
   mix.setAttribute("aria-hidden", "true"); under.setAttribute("aria-hidden", "true");
-  const foot = el("div", "foot small"), sw = el("span", "sw"); sw.append(el("i"), "Trapped air, darker is more capped");
-  foot.append(sw, el("span", "", `AQI from PM2.5 · ${src === "NOAA" ? "NOAA" + (bc ? ", bias-corrected" : "") : src === "CAMS" ? "CAMS" : "NOAA, gaps filled by CAMS"}`));
+  const foot = el("div", "foot small"), sw = el("span", "sw"); sw.append(el("i"), "Trapped air"); foot.appendChild(sw);
+  $("i24").dataset.info = `Bars are AQI from the hourly PM2.5 forecast (${src === "NOAA" ? "NOAA" + (bc ? ", bias-corrected" : "") : src === "CAMS" ? "CAMS" : "NOAA, gaps filled by CAMS"}). The strip underneath is trapped air: darker means a stronger inversion. Tap a bar for details.`;
   host.append(grid, under, mix, axis, foot);
 }
 
@@ -544,8 +571,8 @@ function chart(host, { series, bands, refs = [], unit, x0, x1, H, strip }) {
   const now = Date.now();
   svg.appendChild(S("rect", { x: m.l, y: m.t, width: Math.max(0, x(now) - m.l), height: ih, fill: "var(--fg)", "fill-opacity": .04 }));
   if (strip) { const hw = iw / ((x1 - x0) / HOUR);
-    for (const r of strip) { const t = new Date(r.t).getTime(); if (r.blh_m == null || t < x0 || t + HOUR > x1) continue;
-      svg.appendChild(S("rect", { x: x(t), y: m.t + ih + 6, width: hw, height: 6, fill: "var(--mix)", opacity: mixOp(r.blh_m), "shape-rendering": "crispEdges" })); } }
+    for (const r of strip) { const t = new Date(r.t).getTime(); const ci = ciOf(r); if (ci == null || t < x0 || t + HOUR > x1) continue;
+      svg.appendChild(S("rect", { x: x(t), y: m.t + ih + 6, width: hw, height: 6, fill: "var(--mix)", opacity: mixOp(ci), "shape-rendering": "crispEdges" })); } }
   series.forEach(s => {
     const P = s.points.filter(p => p.t >= x0 && p.t <= x1).sort((a, b) => a.t - b.t); let d = "", pen = false, prev = null;
     for (const p of P) { if (p.v == null || (prev && p.t - prev > 2.5 * HOUR)) pen = false; if (p.v == null) { prev = p.t; continue; }
@@ -564,7 +591,7 @@ function chart(host, { series, bands, refs = [], unit, x0, x1, H, strip }) {
     if (t < x0 || t > x1) return leave(); const h = Math.round(t / HOUR), tt = h * HOUR, rows = [];
     hair.setAttribute("x1", x(tt)); hair.setAttribute("x2", x(tt)); hair.setAttribute("opacity", .7);
     series.forEach((s, i) => { const p = maps[i].get(h); if (p) { dots[i].setAttribute("cx", x(p.t)); dots[i].setAttribute("cy", y(p.v)); dots[i].setAttribute("opacity", 1);
-      rows.push({ key: s.color, dash: s.dash, label: s.name, value: `${r1(p.v)} ${unit}` }); } else dots[i].setAttribute("opacity", 0); });
+      rows.push({ key: s.color, dash: s.dash, label: s.name, value: unit === "index" ? ciFmt(p.v) : `${r1(p.v)} ${unit}` }); } else dots[i].setAttribute("opacity", 0); });
     showTip(rc.left + x(tt) * rc.width / W, rc.top + m.t, fDH(new Date(tt)), rows.length ? rows : [{ label: "No data", value: "" }]); };
   hit.addEventListener("pointermove", move); hit.addEventListener("pointerdown", move);
   hit.addEventListener("pointerleave", e => { if (e.pointerType === "mouse") leave(); });
@@ -578,19 +605,20 @@ function renderTrend() {
     if (cams.length) s.push({ name: camsPM() === "pm25_adj" ? "CAMS, calibrated" : "CAMS model", color: "var(--s-2)", dash: true, w: 1.5, points: pts(cams, camsPM()) });
     if (n.pm25) s.push({ name: "NOAA forecast", color: "var(--s-1)", points: pts(n.pm25.series, "v") });
     obs("pm25");
-    cfg = { bands: CATS, unit: "µg/m³", strip: met }; note = "Bottom strip is trapped air. Models tend to under-predict deep inversions, so use DAQ for whether it's a bad day and these lines for when.";
+    cfg = { bands: CATS, unit: "µg/m³", strip: met }; note = "Measured PM2.5 against two forecast models. The bottom strip is trapped air. Models tend to under-predict deep inversions, so use DAQ for whether it's a bad day and these lines for when.";
   } else if (METRIC === "o3") {
     if (cams.length) s.push({ name: "CAMS model", color: "var(--s-2)", dash: true, w: 1.5, points: pts(cams, "o3") });
     if (n.o3) s.push({ name: "NOAA forecast", color: "var(--s-1)", points: pts(n.o3.series, "v") });
     obs("o3");
     cfg = { refs: [{ v: 70, label: "70 ppb · sensitive groups" }], unit: "ppb" }; note = "Ozone peaks on sunny summer afternoons. In winter, PM2.5 matters more.";
-  } else { s.push({ name: "Mixing height", color: "var(--s-1)", points: pts(met, "blh_m") });
-    cfg = { refs: [{ v: 500, label: "about 500 m · inversion" }], unit: "m" }; note = "How deep the air is that pollution mixes into. Below about 500 m the valley is capped and PM2.5 builds."; }
+  } else { s.push({ name: "Clearing Index, estimated", color: "var(--s-1)", points: met.map(r => { const ci = ciOf(r); return { t: new Date(r.t).getTime(), v: ci == null ? null : Math.min(ci, 1100) }; }) });
+    cfg = { refs: [{ v: 500, label: "500 · inversion below" }, { v: 1000, label: "1,000 · clear above" }], unit: "index" };
+    note = "Inversions are rated with Utah's Clearing Index: mixing depth times wind. Under 500 the valley is capped and pollution builds; 1,000 or more clears it out. This hourly line is an estimate; the official NWS daily value is in Conditions."; }
   const lg = $("legend"); lg.textContent = "";
   const order = [...s].reverse();
   for (const x of s.length > 1 ? order : []) { const sp = el("span"), k = el("span", "key" + (x.dash ? " dash" : "")); k.style.setProperty("--c", x.color); sp.append(k, x.name); lg.appendChild(sp); }
   lg.style.display = s.length > 1 ? "" : "none";
-  $("note").textContent = note; $("unit").textContent = cfg.unit;
+  $("i3").dataset.info = note; $("unit").textContent = cfg.unit === "index" ? "Clearing Index" : cfg.unit;
   chart($("chart"), { series: s, x0, x1, H: 230, ...cfg });
 }
 
@@ -615,13 +643,14 @@ function renderStations() {
 /* ============================================================ about */
 function renderStatus() {
   const e = (D.errors || []).slice(), gen = new Date(D.generated_at), box = $("about-status"); box.textContent = "";
-  const stale = [["met", "Mixing height"], ["cams", "CAMS"]].filter(([k]) => D[k] && D[k].stale_from).map(([, n]) => n)
+  const stale = [["met", "Mixing height"], ["cams", "CAMS"], ["clearing", "Clearing Index"]].filter(([k]) => D[k] && D[k].stale_from).map(([, n]) => n)
     .concat(["pm25", "o3", "smoke"].filter(k => D.noaa && D.noaa[k] && D.noaa[k].stale_from).map(k => "NOAA " + k));
   $("status").textContent = e.length ? `${e.length} source${e.length > 1 ? "s" : ""} unavailable` : "Sources and methodology";
   box.appendChild(el("p", "", `Last updated ${gen.toLocaleString([], { weekday: "short", hour: "numeric", minute: "2-digit" })} for ${D.location.name}. ${e.length ? "" : "All sources are reporting."}`));
   if (stale.length) box.appendChild(el("p", "", `Using the previous update for: ${stale.join(", ")}.`));
   e.forEach(x => box.appendChild(el("p", "", `${x.source}: ${x.error}`)));
   const cal = D.cams && D.cams.calibration;
+  $("shed").textContent = D.clearing && D.clearing.airshed ? ` (airshed ${D.clearing.airshed})` : "";
   $("cal").textContent = cal ? ` (currently ×${cal.factor}, from ${cal.hours} hours at ${cal.station})` : "";
 }
 const sheet = $("about");
