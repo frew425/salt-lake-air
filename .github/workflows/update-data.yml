@@ -1,0 +1,2 @@
+- name: Fetch data
+  run: python fetch_data.py data.json
