@@ -63,8 +63,9 @@ h1, h2, h3, p { margin: 0; }
 
 /* ------------------------------------------------------------------ top */
 .top { display: flex; justify-content: space-between; align-items: center; gap: 12px; min-height: 44px; }
-.wm { font-size: 15px; font-weight: 600; letter-spacing: -.01em; text-decoration: none; }
-.wm span { font-weight: 400; color: var(--fg-2); margin-left: 8px; }
+.wm { display: flex; align-items: center; gap: 9px; font-size: 15px; font-weight: 600; letter-spacing: -.01em; text-decoration: none; white-space: nowrap; }
+.wm .mark { width: 22px; height: 22px; flex: none; }
+.wm #loc { font-weight: 400; color: var(--fg-2); }
 .top-r { display: flex; align-items: center; gap: 4px; font-size: 13px; color: var(--fg-2); white-space: nowrap; }
 .icon-btn { width: 44px; height: 44px; margin-right: -12px; display: grid; place-items: center; border: 0; background: none; border-radius: 12px; cursor: pointer; color: var(--fg-2); }
 .icon-btn:hover { color: var(--fg); }
@@ -177,7 +178,7 @@ dialog.sheet[open] { animation: up .22s ease-out; } @keyframes up { from { trans
 .tip .r .x { margin-left: auto; padding-left: 14px; font-weight: 500; }
 .tip .key { border-top-color: currentColor; }
 
-@media (max-width: 520px) { .wm span { display: none; } }
+@media (max-width: 520px) { .wm #loc { display: none; } }
 @media (max-width: 380px) { .wrap { padding-left: 18px; padding-right: 18px; } .h-cat h1 { font-size: 64px; } .stat .v { font-size: 15px; } .srow { grid-template-columns: minmax(0,1fr) 80px 52px; } }
 @media (prefers-reduced-motion: reduce) { *, *::after { animation: none !important; transition: none !important; } }
 </style>
@@ -185,7 +186,7 @@ dialog.sheet[open] { animation: up .22s ease-out; } @keyframes up { from { trans
 <body>
 <div class="wrap">
   <div class="top">
-    <a class="wm" href="./">Salt Lake Air<span id="loc"></span></a>
+    <a class="wm" href="./"><svg class="mark" viewBox="150 190 724 684" aria-hidden="true"><circle cx="232" cy="792" r="62" fill="#1f6f58"/><circle cx="372" cy="792" r="62" fill="#1f6f58"/><circle cx="512" cy="792" r="62" fill="#1f6f58"/><circle cx="652" cy="792" r="62" fill="#1f6f58"/><circle cx="792" cy="792" r="62" fill="#1f6f58"/><circle cx="232" cy="652" r="52" fill="#2f9a7a"/><circle cx="372" cy="652" r="52" fill="#2f9a7a"/><circle cx="512" cy="652" r="52" fill="#2f9a7a"/><circle cx="652" cy="652" r="52" fill="#2f9a7a"/><circle cx="792" cy="652" r="52" fill="#2f9a7a"/><circle cx="232" cy="512" r="40" fill="#3fae8c"/><circle cx="372" cy="512" r="40" fill="#3fae8c"/><circle cx="512" cy="512" r="40" fill="#3fae8c"/><circle cx="652" cy="512" r="40" fill="#3fae8c"/><circle cx="792" cy="512" r="40" fill="#3fae8c"/><circle cx="232" cy="372" r="28" fill="#56b596"/><circle cx="372" cy="372" r="28" fill="#56b596"/><circle cx="512" cy="372" r="28" fill="#56b596"/><circle cx="652" cy="372" r="28" fill="#56b596"/><circle cx="792" cy="372" r="28" fill="#56b596"/><circle cx="232" cy="232" r="16" fill="#7cc4ad"/><circle cx="372" cy="232" r="16" fill="#7cc4ad"/><circle cx="512" cy="232" r="16" fill="#7cc4ad"/><circle cx="652" cy="232" r="16" fill="#7cc4ad"/><circle cx="792" cy="232" r="16" fill="#7cc4ad"/></svg><span class="nm">Salt Lake Air</span><span id="loc"></span></a>
     <div class="top-r"><span id="updated">Loading</span>
       <button class="icon-btn" id="reload" type="button" aria-label="Refresh"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><path d="M13.5 8a5.5 5.5 0 1 1-1.6-3.9"/><path d="M13.5 2.5v3h-3"/></svg></button>
     </div>
