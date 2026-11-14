@@ -399,15 +399,21 @@ const hideTip = () => tip.classList.remove("on");
 /* ============================================================ data access */
 let D = null, METRIC = "pm";
 const home = () => (D.stations || []).find(s => s.series && s.series.length);
+// NOAA where it has the hour, CAMS fills any gaps
+function blend(noaaSeries, camsKey) {
+  const out = new Map();
+  for (const p of pts(D.cams && D.cams.series, camsKey)) if (p.v != null) out.set(hk(p.t), { t: p.t, v: p.v, s: "CAMS" });
+  for (const p of pts(noaaSeries, "v")) if (p.v != null) out.set(hk(p.t), { t: p.t, v: p.v, s: "NOAA" });
+  return [...out.values()].sort((a, b) => a.t - b.t);
+}
 function hourlyPM() {
-  const n = D.noaa || {};
-  if (n.pm25 && n.pm25.series && n.pm25.series.length) return { src: "NOAA", bc: n.pm25.bias_corrected, p: pts(n.pm25.series, "v").filter(x => x.v != null) };
-  return { src: "CAMS", p: pts(D.cams && D.cams.series, "pm25").filter(x => x.v != null) };
+  const n = D.noaa || {}, p = blend(n.pm25 && n.pm25.series, "pm25");
+  const now = Date.now(), next = p.filter(x => x.t >= now - HOUR && x.t <= now + 24 * HOUR);
+  const nn = next.filter(x => x.s === "NOAA").length;
+  const src = !next.length ? "CAMS" : nn === next.length ? "NOAA" : nn === 0 ? "CAMS" : "NOAA + CAMS";
+  return { src, bc: n.pm25 && n.pm25.bias_corrected, p };
 }
-function hourlyO3() {
-  const n = D.noaa || {};
-  return n.o3 && n.o3.series && n.o3.series.length ? pts(n.o3.series, "v") : pts(D.cams && D.cams.series, "o3");
-}
+function hourlyO3() { const n = D.noaa || {}; return blend(n.o3 && n.o3.series, "o3"); }
 function next24() {
   const { p } = hourlyPM(), byH = new Map(p.map(x => [hk(x.t), x.v]));
   const met = new Map(((D.met && D.met.series) || []).filter(r => r.blh_m != null).map(r => [hk(new Date(r.t).getTime()), r]));
@@ -577,7 +583,7 @@ function render24() {
       band.style.left = (a.offsetLeft - 3) + "px"; band.style.width = (b.offsetLeft + b.offsetWidth - a.offsetLeft + 6) + "px"; });
   }
   const foot = el("div", "foot"), sw = el("span", "sw"); sw.append(el("i"), "Trapped air");
-  foot.append(sw, el("span", "src", `PM2.5 µg/m³ · ${src === "NOAA" ? "NOAA model" + (bc ? ", bias-corrected" : "") : "CAMS model"}`));
+  foot.append(sw, el("span", "src", `PM2.5 µg/m³ · ${src === "NOAA" ? "NOAA model" + (bc ? ", bias-corrected" : "") : src === "CAMS" ? "CAMS model" : "NOAA, gaps filled by CAMS"}`));
   host.appendChild(foot);
 }
 

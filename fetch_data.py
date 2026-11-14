@@ -224,7 +224,9 @@ def noaa_point_series(service, now):
             if "error" in data:
                 raise RuntimeError(json.dumps(data["error"])[:300])
             samples = data.get("samples", [])
-            by_issue = {}
+            # Each forecast hour can carry its own issue stamp, so keep, for every
+            # valid hour, the value from the most recently issued model run.
+            best = {}
             for s in samples:
                 a = {k.lower(): v for k, v in (s.get("attributes") or {}).items()}
                 vt = a.get("idp_validtime")
@@ -233,15 +235,16 @@ def noaa_point_series(service, now):
                 v = fnum(str(raw).split()[0]) if raw not in (None, "") else None
                 if vt is None or v is None or v < 0 or v > 5000:
                     continue
-                by_issue.setdefault(issued, {})[int(vt)] = v
-            if not by_issue:
+                hour = int(vt) // 3600000 * 3600000
+                if hour not in best or issued >= best[hour][0]:
+                    best[hour] = (issued, v)
+            if not best:
                 raise RuntimeError(f"no usable samples (got {len(samples)})")
-            issued = max(by_issue)
-            pts = sorted(by_issue[issued].items())
+            latest = max(i for i, _ in best.values())
             series = [{"t": iso(datetime.fromtimestamp(ms / 1000, tz=timezone.utc)), "v": round(v, 1)}
-                      for ms, v in pts]
-            issued_s = iso(datetime.fromtimestamp(issued / 1000, tz=timezone.utc)) if issued else None
-            return {"service": service, "issued": issued_s, "series": series}
+                      for ms, (_, v) in sorted(best.items())]
+            issued_s = iso(datetime.fromtimestamp(latest / 1000, tz=timezone.utc)) if latest else None
+            return {"service": service, "issued": issued_s, "samples": len(samples), "series": series}
         except Exception as e:  # noqa: BLE001
             last_err = e
     raise RuntimeError(f"{service}: {last_err}")
