@@ -41,7 +41,6 @@ STATIONS = [
     ("nr", "Near Road I-15"),
     ("rp", "Rose Park"),
     ("lp", "West Valley"),
-    ("ip", "Inland Port"),
 ]
 DAQ_FORECAST_RSS = "https://air.utah.gov/rssFeed.php?id=slc"
 DAQ_FORECAST_CSV = "https://air.utah.gov/csvFeed.php?id=forecast"
