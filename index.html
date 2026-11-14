@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Salt Lake Air</title>
+<meta name="theme-color" content="#e6eef6" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0b111c" media="(prefers-color-scheme: dark)">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%23142130'/><g transform='translate(4 4) scale(1)' fill='none' stroke='white' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='10.25'/><path d='M4.2 16.2 8.4 11l2.6 2.8 3.3-4.3 5.5 6.7'/></g><circle cx='19.6' cy='10.9' r='2.1' fill='%233fae8c'/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ------------------------------------------------------------------ tokens */
+:root {
+  color-scheme: light;
+  --fg: #142130;
+  --fg-2: #4a5868;
+  --fg-3: #7d8a98;
+  --glass: rgba(255,255,255,.58);
+  --glass-strong: rgba(255,255,255,.72);
+  --glass-edge: rgba(255,255,255,.75);
+  --glass-line: rgba(20,33,48,.07);
+  --glass-shadow: 0 1px 1px rgba(20,33,48,.03), 0 10px 30px -8px rgba(30,50,80,.16);
+  --hi: inset 0 1px 0 rgba(255,255,255,.9);
+  --track: rgba(20,33,48,.07);
+  --s-obs: #142130;
+  --s-1: #2a78d6;
+  --s-2: #eb6834;
+  /* calm AQI scale: same order and meaning as EPA, softened */
+  --q1: #3fae8c; --q2: #dcb64a; --q3: #ee9a5a; --q4: #e06b67; --q5: #9a7fd4; --q6: #8c4466;
+  /* sky (overridden per category) */
+  --sky-top: #d9ecf4; --sky-bot: #eef1f8; --glow-1: #bfe6da; --glow-2: #d6def8;
+  --ridge: rgba(255,255,255,.55); --ridge-2: rgba(255,255,255,.35);
+  --grain: .07;
+}
+:root[data-q="2"] { --sky-top: #e9eae6; --sky-bot: #eef1f6; --glow-1: #efe2bb; --glow-2: #d6e0f2; }
+:root[data-q="3"] { --sky-top: #f0e3d6; --sky-bot: #efedf2; --glow-1: #f4c59c; --glow-2: #e3dcef; }
+:root[data-q="4"] { --sky-top: #f0dcda; --sky-bot: #eeeaf0; --glow-1: #eeb0aa; --glow-2: #e2d7ea; }
+:root[data-q="5"], :root[data-q="6"] { --sky-top: #e6dcec; --sky-bot: #ebe8f0; --glow-1: #cdb8e6; --glow-2: #e6d0dc; }
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --fg: #e9eef4;
+    --fg-2: #a7b2bf;
+    --fg-3: #74808e;
+    --glass: rgba(20,27,38,.52);
+    --glass-strong: rgba(24,32,45,.7);
+    --glass-edge: rgba(255,255,255,.09);
+    --glass-line: rgba(255,255,255,.06);
+    --glass-shadow: 0 10px 30px -10px rgba(0,0,0,.6);
+    --hi: inset 0 1px 0 rgba(255,255,255,.07);
+    --track: rgba(255,255,255,.08);
+    --s-obs: #e9eef4;
+    --s-1: #4d94ea;
+    --s-2: #e06a37;
+    --q1: #4cc29d; --q2: #e2bf55; --q3: #f2a266; --q4: #ec7a75; --q5: #a993e0; --q6: #b55b86;
+    --sky-top: #0c1626; --sky-bot: #0a0f18; --glow-1: rgba(63,174,140,.20); --glow-2: rgba(70,98,190,.20);
+    --ridge: rgba(140,170,210,.06); --ridge-2: rgba(140,170,210,.04);
+    --grain: .05;
+  }
+  :root[data-q="2"] { --sky-bot: #0a0f18; --sky-top: #14161f; --glow-1: rgba(220,182,74,.16); --glow-2: rgba(70,98,190,.16); }
+  :root[data-q="3"] { --sky-bot: #0a0f18; --sky-top: #1a1519; --glow-1: rgba(238,154,90,.18); --glow-2: rgba(110,80,160,.14); }
+  :root[data-q="4"] { --sky-bot: #0a0f18; --sky-top: #1b1318; --glow-1: rgba(224,107,103,.18); --glow-2: rgba(110,80,160,.16); }
+  :root[data-q="5"], :root[data-q="6"] { --sky-bot: #0a0f18; --sky-top: #17121e; --glow-1: rgba(154,127,212,.2); --glow-2: rgba(140,68,102,.16); }
+}
+
+/* ------------------------------------------------------------------ base */
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0; min-height: 100vh; color: var(--fg);
+  font: 400 14px/1.5 Geist, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-variant-numeric: tabular-nums; -webkit-font-smoothing: antialiased;
+  background: linear-gradient(180deg, var(--sky-top) 0%, var(--sky-bot) 70%);
+  background-attachment: fixed;
+  transition: background .8s ease;
+}
+.sky { position: fixed; inset: 0; z-index: -1; pointer-events: none; overflow: hidden; }
+.sky .g1, .sky .g2 { position: absolute; border-radius: 50%; filter: blur(80px); transition: background .8s ease; }
+.sky .g1 { width: 60vw; height: 60vw; left: -12vw; top: -22vw; background: var(--glow-1); opacity: .65; }
+.sky .g2 { width: 55vw; height: 55vw; right: -14vw; top: 8vh; background: var(--glow-2); opacity: .8; }
+.sky .r1 { fill: var(--ridge); } .sky .r2 { fill: var(--ridge-2); }
+.sky svg { position: absolute; left: 0; right: 0; bottom: 0; width: 100%; height: 34vh; min-height: 200px; }
+.sky::after { /* film grain */
+  content: ""; position: absolute; inset: 0; opacity: var(--grain); mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1.2 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+a { color: inherit; text-decoration: none; }
+
+/* ------------------------------------------------------------------ chrome */
+.wrap { max-width: 1180px; margin: 0 auto; padding: max(14px, env(safe-area-inset-top)) 22px 32px; }
+.top { display: flex; align-items: center; justify-content: space-between; height: 48px; margin-bottom: 10px; }
+.brand { display: flex; align-items: center; gap: 14px; min-width: 0; }
+.logo { display: flex; align-items: center; gap: 9px; color: var(--fg); }
+.logo svg { width: 24px; height: 24px; flex: none; }
+.logo .wm { font-size: 16.5px; letter-spacing: -.028em; line-height: 1; white-space: nowrap; }
+.logo .wm b { font-weight: 600; }
+.logo .wm span { font-weight: 400; color: var(--fg-2); margin-left: 4px; }
+.place { display: inline-flex; align-items: center; gap: 6px; padding-left: 14px; border-left: 1px solid color-mix(in srgb, var(--fg) 14%, transparent); font-size: 13.5px; color: var(--fg-2); white-space: nowrap; }
+.place svg { width: 13px; height: 13px; color: var(--fg-3); }
+.top-r { display: flex; align-items: center; gap: 6px; }
+.status { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--fg-3); white-space: nowrap; }
+.status .live { color: var(--fg); font-weight: 500; }
+.status .ago::before { content: "·"; margin-right: 6px; }
+.pulse { width: 7px; height: 7px; border-radius: 50%; background: var(--q1); position: relative; }
+.pulse::after { content: ""; position: absolute; inset: -4px; border-radius: 50%; border: 1.5px solid var(--q1); opacity: 0; animation: ping 2.6s ease-out infinite; }
+.pulse.stale { background: var(--fg-3); } .pulse.stale::after { display: none; }
+@keyframes ping { 0% { transform: scale(.4); opacity: .7; } 100% { transform: scale(1.6); opacity: 0; } }
+.round { width: 32px; height: 32px; border-radius: 10px; display: grid; place-items: center; cursor: pointer; padding: 0; color: var(--fg-2); background: transparent; border: 0; transition: background .15s, color .15s; }
+.round:hover { color: var(--fg); background: color-mix(in srgb, var(--fg) 7%, transparent); }
+.round svg { width: 15px; height: 15px; }
+.round.spin svg { animation: spin .8s linear infinite; } @keyframes spin { to { transform: rotate(360deg); } }
+
+/* ------------------------------------------------------------------ glass */
+.grid { display: grid; gap: 14px; grid-template-columns: repeat(12, minmax(0,1fr)); }
+.glass {
+  position: relative; min-width: 0; border-radius: 20px;
+  background: var(--glass); border: 1px solid var(--glass-edge);
+  box-shadow: var(--hi), var(--glass-shadow);
+  backdrop-filter: blur(24px) saturate(150%); -webkit-backdrop-filter: blur(24px) saturate(150%);
+}
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) { .glass { background: var(--glass-strong); } }
+@media (prefers-reduced-transparency: reduce) { .glass { background: var(--glass-strong); backdrop-filter: none; -webkit-backdrop-filter: none; } }
+.head { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 16px 18px 0; min-height: 30px; }
+.head h2 { margin: 0; font-size: 13px; font-weight: 500; color: var(--fg-2); letter-spacing: .005em; }
+.head .meta { font-size: 12px; color: var(--fg-3); white-space: nowrap; }
+.c-hero { grid-column: span 7; }
+.c-side { grid-column: span 5; display: grid; gap: 14px; grid-template-rows: auto 1fr; }
+.c-24 { grid-column: span 12; }
+.c-trend { grid-column: span 8; }
+.c-st { grid-column: span 4; }
+@media (max-width: 980px) { .c-hero, .c-side, .c-trend, .c-st { grid-column: span 12; } }
+@media (max-width: 560px) { .wrap { padding-left: 12px; padding-right: 12px; } .grid { gap: 10px; } .glass { border-radius: 18px; } .place { display: none; } .status .ago { display: none; } }
+
+/* ------------------------------------------------------------------ hero */
+.c-hero { display: flex; flex-direction: column; }
+.hero { flex: 1; display: grid; grid-template-columns: 196px 1fr; grid-template-rows: 1fr auto; gap: 8px 26px; align-items: center; padding: 18px 22px 20px; }
+.gauge { position: relative; width: 196px; height: 176px; }
+.gauge svg { width: 100%; height: 100%; overflow: visible; }
+.gauge .v { position: absolute; left: 0; right: 0; top: 52px; text-align: center; }
+.gauge .num { font-size: 58px; font-weight: 300; letter-spacing: -.04em; line-height: 1; }
+.gauge .lbl { font-size: 11.5px; color: var(--fg-3); margin-top: 6px; letter-spacing: .02em; }
+.h-cat { display: inline-flex; align-items: center; gap: 10px; font-size: 28px; font-weight: 500; letter-spacing: -.025em; line-height: 1.15; }
+.h-cat .dot { width: 10px; height: 10px; }
+.h-sub { color: var(--fg-3); font-size: 12.5px; margin-top: 4px; }
+.insight { margin-top: 12px; font-size: 15px; line-height: 1.5; color: var(--fg-2); max-width: 46ch; }
+.insight b { color: var(--fg); font-weight: 500; white-space: nowrap; }
+.stats { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(5, minmax(0,1fr)); margin-top: 14px; border-top: 1px solid var(--glass-line); padding-top: 14px; }
+.stat { padding-right: 10px; }
+.stat + .stat { padding-left: 14px; border-left: 1px solid var(--glass-line); }
+.stat .k { font-size: 11.5px; color: var(--fg-3); }
+.stat .v { font-size: 17px; font-weight: 500; letter-spacing: -.01em; margin-top: 2px; white-space: nowrap; }
+.stat .v small { font-size: 11px; font-weight: 400; color: var(--fg-3); margin-left: 3px; }
+@media (max-width: 560px) {
+  .hero { grid-template-columns: 132px 1fr; gap: 6px 14px; padding: 14px 14px 16px; }
+  .gauge { width: 132px; height: 120px; } .gauge .v { top: 34px; } .gauge .num { font-size: 40px; } .gauge .lbl { font-size: 10.5px; margin-top: 3px; }
+  .h-cat { font-size: 21px; gap: 8px; } .h-cat .dot { width: 8px; height: 8px; }
+  .insight { grid-column: 1 / -1; font-size: 14px; margin-top: 4px; }
+  .stats { grid-template-columns: repeat(3, minmax(0,1fr)); row-gap: 12px; margin-top: 8px; }
+  .stat:nth-child(4) { padding-left: 0; border-left: 0; }
+  .stat .v { font-size: 15.5px; }
+}
+.dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; flex: none; background: var(--c, var(--fg-3)); box-shadow: 0 0 0 3px color-mix(in srgb, var(--c, transparent) 18%, transparent); }
+
+/* ------------------------------------------------------------------ forecast + conditions */
+.days { padding: 10px 8px 10px; }
+.day { display: grid; grid-template-columns: 84px 1fr auto; align-items: center; gap: 10px; padding: 9px 10px; border-radius: 12px; }
+.day + .day { border-top: 1px solid var(--glass-line); border-radius: 0; }
+.day .d { font-size: 13px; color: var(--fg-2); }
+.day .q { display: inline-flex; align-items: center; gap: 9px; font-weight: 500; font-size: 14.5px; letter-spacing: -.01em; min-width: 0; white-space: nowrap; }
+.day .a { font-size: 11.5px; padding: 3px 8px; border-radius: 999px; background: var(--track); color: var(--fg-2); white-space: nowrap; }
+.day .a.v { background: color-mix(in srgb, var(--q2) 18%, transparent); color: color-mix(in srgb, var(--q2) 50%, var(--fg)); }
+.day .a.m { background: color-mix(in srgb, var(--q4) 16%, transparent); color: color-mix(in srgb, var(--q4) 70%, var(--fg)); }
+.day .raw { grid-column: 2 / -1; font-size: 12px; color: var(--fg-2); white-space: pre-line; }
+.conds { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 0; padding: 12px 6px 14px; height: calc(100% - 46px); align-content: center; }
+.cond { padding: 4px 12px; }
+.cond + .cond { border-left: 1px solid var(--glass-line); }
+.cond .k { display: flex; align-items: center; gap: 7px; font-size: 12px; color: var(--fg-3); }
+.cond .k svg { width: 14px; height: 14px; color: var(--fg-3); }
+.cond .v { font-size: 15px; font-weight: 500; margin-top: 4px; letter-spacing: -.01em; }
+.cond .s { font-size: 12px; color: var(--fg-3); margin-top: 1px; }
+.meter { height: 4px; border-radius: 4px; background: var(--track); margin-top: 9px; overflow: hidden; }
+.meter i { display: block; height: 100%; border-radius: 4px; background: var(--c); }
+@media (max-width: 560px) { .cond { padding: 2px 8px; } .cond .v { font-size: 13.5px; } .day { grid-template-columns: 70px 1fr auto; gap: 8px; } .day .q { font-size: 13.5px; gap: 7px; } .day .a .lgw { display: none; } }
+
+/* ------------------------------------------------------------------ 24h */
+.h24 { padding: 8px 18px 16px; }
+.hours { position: relative; display: grid; grid-template-columns: repeat(24, minmax(0,1fr)); gap: 5px; align-items: end; height: 150px; padding-top: 22px; }
+.hr { position: relative; height: 100%; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; }
+.hr .b { width: 100%; max-width: 30px; border-radius: 999px; min-height: 8px; background: linear-gradient(180deg, color-mix(in srgb, var(--c) 72%, white), var(--c)); box-shadow: inset 0 1px 0 rgba(255,255,255,.35); transition: opacity .15s, transform .15s; transform-origin: bottom; }
+.hr .val { font-size: 10.5px; color: var(--fg-3); margin-bottom: 5px; }
+.hours:hover .hr .b { opacity: .45; } .hours .hr:hover .b { opacity: 1; transform: scaleY(1.02); }
+.best { position: absolute; top: 0; height: 100%; border-radius: 14px; background: color-mix(in srgb, var(--q1) 10%, transparent); border: 1px dashed color-mix(in srgb, var(--q1) 55%, transparent); pointer-events: none; }
+.best span { position: absolute; top: 4px; left: 50%; transform: translateX(-50%); font-size: 10.5px; font-weight: 500; color: color-mix(in srgb, var(--q1) 70%, var(--fg)); white-space: nowrap; }
+.mix { display: grid; grid-template-columns: repeat(24, minmax(0,1fr)); gap: 5px; margin-top: 10px; }
+.mix i { height: 5px; border-radius: 3px; background: #6f7fa6; }
+.axis { display: grid; grid-template-columns: repeat(24, minmax(0,1fr)); gap: 5px; margin-top: 7px; font-size: 11px; color: var(--fg-3); }
+.axis span { text-align: center; white-space: nowrap; }
+.axis span.now { color: var(--fg); font-weight: 500; }
+.foot { display: flex; justify-content: space-between; gap: 10px; margin-top: 12px; font-size: 12px; color: var(--fg-3); }
+.foot .sw { display: inline-flex; align-items: center; gap: 7px; }
+.foot .sw i { width: 26px; height: 5px; border-radius: 3px; background: linear-gradient(90deg, rgba(111,127,166,.12), #6f7fa6); }
+.pills { display: flex; gap: 6px; }
+.pill { display: inline-flex; align-items: center; gap: 7px; height: 26px; padding: 0 11px; border-radius: 999px; font-size: 12px; color: var(--fg-2); background: var(--glass-strong); border: 1px solid var(--glass-edge); box-shadow: var(--hi); white-space: nowrap; }
+.pill b { color: var(--fg); font-weight: 500; }
+@media (max-width: 560px) {
+  .h24 { padding: 6px 12px 14px; } .hours { gap: 2px; height: 128px; } .mix, .axis { gap: 2px; } .hr .val { display: none; }
+  .best span { font-size: 0; } .pill.opt { display: none; } .foot .src { display: none; }
+}
+
+/* ------------------------------------------------------------------ trend */
+.seg { display: inline-flex; padding: 3px; border-radius: 999px; background: var(--track); }
+.seg button { font: inherit; font-size: 12px; color: var(--fg-2); background: none; border: 0; height: 24px; padding: 0 11px; border-radius: 999px; cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--glass-strong); color: var(--fg); box-shadow: 0 1px 2px rgba(0,0,0,.08), var(--hi); }
+.legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 12px; color: var(--fg-2); padding: 10px 18px 0; }
+.legend span { display: inline-flex; align-items: center; gap: 7px; }
+.key { width: 16px; border-top: 2px solid var(--c); border-radius: 2px; }
+.key.dash { border-top-style: dashed; }
+.chart { position: relative; padding: 2px 10px 4px 2px; touch-action: pan-y; }
+.chart svg { display: block; width: 100%; overflow: visible; }
+.chart text { fill: var(--fg-3); font-size: 10.5px; }
+.note { padding: 0 18px 16px; font-size: 12px; color: var(--fg-3); }
+
+/* ------------------------------------------------------------------ stations */
+.st { padding: 8px 18px 12px; }
+.srow { display: grid; grid-template-columns: 1fr 90px 44px; align-items: center; gap: 12px; padding: 8px 0; }
+.srow + .srow { border-top: 1px solid var(--glass-line); }
+.srow .n { font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.srow .n small { display: block; font-size: 11px; color: var(--fg-3); }
+.srow .bar { height: 6px; border-radius: 6px; background: var(--track); overflow: hidden; }
+.srow .bar i { display: block; height: 100%; border-radius: 6px; background: linear-gradient(90deg, color-mix(in srgb, var(--c) 60%, white), var(--c)); }
+.srow .v { text-align: right; font-size: 13.5px; font-weight: 500; }
+.srow .v.na { color: var(--fg-3); font-weight: 400; }
+.st .unit { font-size: 11.5px; color: var(--fg-3); padding-top: 6px; }
+
+/* ------------------------------------------------------------------ tooltip */
+.tip { position: fixed; z-index: 30; pointer-events: none; min-width: 150px; padding: 9px 12px; border-radius: 12px; font-size: 12px;
+  background: var(--glass-strong); border: 1px solid var(--glass-edge); box-shadow: var(--hi), 0 12px 32px -8px rgba(20,33,48,.3);
+  backdrop-filter: blur(20px) saturate(150%); -webkit-backdrop-filter: blur(20px) saturate(150%);
+  opacity: 0; transform: translateY(3px); transition: opacity .1s, transform .1s; }
+.tip.on { opacity: 1; transform: none; }
+.tip .h { color: var(--fg-3); margin-bottom: 5px; }
+.tip .r { display: flex; align-items: center; gap: 8px; line-height: 1.75; }
+.tip .r .x { margin-left: auto; padding-left: 14px; font-weight: 500; }
+
+/* ------------------------------------------------------------------ footer */
+footer { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px 18px; margin-top: 18px; padding: 0 4px; font-size: 12px; color: var(--fg-3); }
+footer .links { display: flex; flex-wrap: wrap; gap: 4px 16px; }
+footer a { color: var(--fg-2); } footer a:hover { color: var(--fg); }
+footer details summary { cursor: pointer; list-style: none; } footer details summary::-webkit-details-marker { display: none; }
+footer details[open] div { margin-top: 6px; }
+.empty { color: var(--fg-3); font-size: 12.5px; padding: 16px 18px; }
+@media (prefers-reduced-motion: reduce) { *, *::after { animation: none !important; transition: none !important; } }
+</style>
+</head>
+<body>
+<div class="sky" aria-hidden="true">
+  <div class="g1"></div><div class="g2"></div>
+  <svg viewBox="0 0 1440 320" preserveAspectRatio="none">
+    <path class="r2" d="M0 210 L90 170 L160 190 L250 120 L330 160 L420 95 L500 140 L590 80 L660 125 L760 70 L840 115 L930 90 L1010 140 L1100 100 L1190 150 L1280 120 L1360 160 L1440 140 L1440 320 L0 320Z"/>
+    <path class="r1" d="M0 260 L120 220 L210 240 L300 195 L390 230 L480 185 L570 225 L650 200 L760 240 L860 205 L960 245 L1060 215 L1160 250 L1260 225 L1350 255 L1440 235 L1440 320 L0 320Z"/>
+  </svg>
+</div>
+
+<div class="wrap">
+  <div class="top">
+    <div class="brand">
+      <a class="logo" href="./" aria-label="Salt Lake Air">
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <circle cx="12" cy="12" r="10.25" stroke="currentColor" stroke-width="1.5"/>
+          <path d="M4.2 16.2 8.4 11l2.6 2.8 3.3-4.3 5.5 6.7" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
+          <circle id="mark-sun" cx="15.6" cy="6.9" r="1.9" fill="var(--q1)"/>
+        </svg>
+        <span class="wm"><b>Salt Lake</b><span>Air</span></span>
+      </a>
+      <span class="place"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 14.2s4.6-4.2 4.6-7.6a4.6 4.6 0 1 0-9.2 0c0 3.4 4.6 7.6 4.6 7.6Z"/><circle cx="8" cy="6.6" r="1.6"/></svg><span id="loc">—</span></span>
+    </div>
+    <div class="top-r">
+      <span class="status"><span class="pulse" id="pulse"></span><span class="live">Live</span><span class="ago" id="updated">Loading</span></span>
+      <button class="round" id="reload" type="button" aria-label="Refresh"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M13.5 8a5.5 5.5 0 1 1-1.6-3.9"/><path d="M13.5 2.5v3h-3"/></svg></button>
+    </div>
+  </div>
+
+  <main class="grid">
+    <section class="glass c-hero" aria-label="Current air quality">
+      <div class="hero" id="hero"><div class="empty">Loading…</div></div>
+    </section>
+
+    <div class="c-side">
+      <section class="glass">
+        <div class="head"><h2>Official forecast</h2><span class="meta">Utah DAQ</span></div>
+        <div class="days" id="days"></div>
+      </section>
+      <section class="glass">
+        <div class="head"><h2>Conditions</h2><span class="meta">Next 24 hours</span></div>
+        <div class="conds" id="conds"></div>
+      </section>
+    </div>
+
+    <section class="glass c-24">
+      <div class="head"><h2>Next 24 hours</h2><div class="pills" id="pills"></div></div>
+      <div class="h24" id="h24"></div>
+    </section>
+
+    <section class="glass c-trend">
+      <div class="head">
+        <h2>3-day outlook</h2>
+        <div class="seg" role="group" aria-label="Metric">
+          <button type="button" data-m="pm" aria-pressed="true">PM2.5</button>
+          <button type="button" data-m="o3" aria-pressed="false">Ozone</button>
+          <button type="button" data-m="mix" aria-pressed="false">Mixing</button>
+        </div>
+      </div>
+      <div class="legend" id="legend"></div>
+      <div class="chart" id="chart"></div>
+      <div class="note" id="note"></div>
+    </section>
+
+    <section class="glass c-st">
+      <div class="head"><h2>Valley monitors</h2><span class="meta">PM2.5 · 24h avg</span></div>
+      <div class="st" id="stations"></div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="links">
+      <a href="https://www.saltlakecounty.gov/health/air-quality/airview/">Neighborhood sensors ↗</a>
+      <a href="https://air.utah.gov/forecast.php?id=slc">Utah DAQ ↗</a>
+      <a href="https://airquality.weather.gov/">NOAA forecast ↗</a>
+      <a href="https://fire.airnow.gov/">Smoke map ↗</a>
+    </div>
+    <div id="status"></div>
+  </footer>
+</div>
+<div class="tip" id="tip"></div>
+
+<script>
+"use strict";
+/* ============================================================ AQI math */
+const CATS = [
+  { max: 9.0,   name: "Good",                           short: "Good",      i: 1, lo: 0,   hi: 50 },
+  { max: 35.4,  name: "Moderate",                       short: "Moderate",  i: 2, lo: 51,  hi: 100 },
+  { max: 55.4,  name: "Unhealthy for sensitive groups", short: "Sensitive groups", i: 3, lo: 101, hi: 150 },
+  { max: 125.4, name: "Unhealthy",                      short: "Unhealthy", i: 4, lo: 151, hi: 200 },
+  { max: 225.4, name: "Very unhealthy",                 short: "Very unhealthy", i: 5, lo: 201, hi: 300 },
+  { max: 325.4, name: "Hazardous",                      short: "Hazardous", i: 6, lo: 301, hi: 500 },
+];
+const PM_BP = [0, 9.0, 35.4, 55.4, 125.4, 225.4, 325.4];
+const qv = i => `var(--q${i})`;
+const pmCat = c => c == null ? null : (CATS.find(k => Math.round(c * 10) / 10 <= k.max) || CATS[5]);
+function pmAqi(c) {
+  if (c == null) return null; c = Math.max(0, Math.round(c * 10) / 10);
+  let idx = CATS.findIndex(k => c <= k.max); if (idx === -1) idx = 5;
+  const k = CATS[idx], cLo = idx === 0 ? 0 : PM_BP[idx] + 0.1, cHi = PM_BP[idx + 1];
+  return Math.round((k.hi - k.lo) / (cHi - cLo) * (Math.min(c, cHi) - cLo) + k.lo);
+}
+const aqiCat = a => CATS.find(k => a <= k.hi) || CATS[5];
+function nowcast(values) {
+  const l = values.slice(-12).reverse();
+  if (l.slice(0, 3).filter(v => v != null).length < 2) return null;
+  const ok = l.filter(v => v != null), mn = Math.min(...ok), mx = Math.max(...ok);
+  const w = Math.max(mx > 0 ? mn / mx : 1, .5); let a = 0, b = 0;
+  l.forEach((v, i) => { if (v != null) { a += w ** i * v; b += w ** i; } });
+  return b ? a / b : null;
+}
+
+/* ============================================================ helpers */
+const $ = id => document.getElementById(id);
+const el = (t, c, txt) => { const e = document.createElement(t); if (c) e.className = c; if (txt != null) e.textContent = txt; return e; };
+const S = (t, a = {}) => { const e = document.createElementNS("http://www.w3.org/2000/svg", t); for (const k in a) e.setAttribute(k, a[k]); return e; };
+const HOUR = 3600e3, hk = t => Math.floor(t / HOUR);
+const fH = d => { const h = d.getHours(); return (h % 12 || 12) + (h < 12 ? "a" : "p"); };
+const fHL = d => d.toLocaleTimeString([], { hour: "numeric" });
+const fDH = d => d.toLocaleDateString([], { weekday: "short" }) + " " + fHL(d);
+const ago = d => { const m = Math.max(0, Math.round((Date.now() - d) / 6e4)); return m < 1 ? "just now" : m < 60 ? `${m} min ago` : m < 1440 ? `${Math.round(m / 60)} h ago` : `${Math.round(m / 1440)} d ago`; };
+const r1 = v => v == null ? "—" : Math.abs(v) >= 100 ? String(Math.round(v)) : (Math.round(v * 10) / 10).toFixed(1);
+const pts = (a, k) => (a || []).map(r => ({ t: new Date(r.t).getTime(), v: r[k] }));
+const dot = c => { const d = el("span", "dot"); d.style.setProperty("--c", c); return d; };
+const sameDay = (a, b) => a.toDateString() === b.toDateString();
+const when = d => { const now = new Date(); const tm = new Date(now); tm.setDate(now.getDate() + 1);
+  return sameDay(d, now) ? fHL(d) : sameDay(d, tm) && d.getHours() < 5 ? "overnight" : sameDay(d, tm) ? "tomorrow " + fHL(d) : fDH(d); };
+
+/* tooltip */
+const tip = $("tip");
+function showTip(x, y, head, rows) {
+  tip.textContent = ""; tip.appendChild(el("div", "h", head));
+  for (const r of rows) { const row = el("div", "r");
+    if (r.key) { const k = el("span", "key" + (r.dash ? " dash" : "")); k.style.setProperty("--c", r.key); row.appendChild(k); } else if (r.dot) row.appendChild(dot(r.dot));
+    row.append(el("span", "", r.label), el("span", "x", r.value)); tip.appendChild(row); }
+  tip.classList.add("on");
+  const w = tip.offsetWidth, h = tip.offsetHeight;
+  tip.style.left = Math.max(8, Math.min(x - w / 2, innerWidth - w - 8)) + "px";
+  tip.style.top = (y - h - 14 < 8 ? y + 18 : y - h - 14) + "px";
+}
+const hideTip = () => tip.classList.remove("on");
+
+/* ============================================================ data access */
+let D = null, METRIC = "pm";
+const home = () => (D.stations || []).find(s => s.series && s.series.length);
+function hourlyPM() {
+  const n = D.noaa || {};
+  if (n.pm25 && n.pm25.series && n.pm25.series.length) return { src: "NOAA", bc: n.pm25.bias_corrected, p: pts(n.pm25.series, "v").filter(x => x.v != null) };
+  return { src: "CAMS", p: pts(D.cams && D.cams.series, "pm25").filter(x => x.v != null) };
+}
+function hourlyO3() {
+  const n = D.noaa || {};
+  return n.o3 && n.o3.series && n.o3.series.length ? pts(n.o3.series, "v") : pts(D.cams && D.cams.series, "o3");
+}
+function next24() {
+  const { p } = hourlyPM(), byH = new Map(p.map(x => [hk(x.t), x.v]));
+  const met = new Map(((D.met && D.met.series) || []).filter(r => r.blh_m != null).map(r => [hk(new Date(r.t).getTime()), r]));
+  const s = hk(Date.now());
+  return Array.from({ length: 24 }, (_, i) => ({ h: s + i, t: (s + i) * HOUR, v: byH.get(s + i), m: met.get(s + i) }));
+}
+function bestWorst(hours) {
+  const w = [];
+  for (let i = 0; i < hours.length - 1; i++) { const a = hours[i], b = hours[i + 1], hr = new Date(a.t).getHours();
+    if (a.v == null || b.v == null || hr < 6 || hr > 20) continue; w.push({ i, v: (a.v + b.v) / 2, t: a.t }); }
+  if (!w.length) return {};
+  return { best: w.reduce((a, b) => b.v < a.v ? b : a), worst: w.reduce((a, b) => b.v > a.v ? b : a) };
+}
+const span2 = t => `${fH(new Date(t))}–${fH(new Date(t + 2 * HOUR))}`;
+const spanP = t => { const a = new Date(t), b = new Date(t + 2 * HOUR), ap = d => d.getHours() < 12 ? "AM" : "PM", h = d => d.getHours() % 12 || 12;
+  return ap(a) === ap(b) ? `${h(a)}–${h(b)}\u00a0${ap(b)}` : `${h(a)}\u00a0${ap(a)}–${h(b)}\u00a0${ap(b)}`; };
+
+/* ============================================================ hero */
+function gauge(aqi, cat) {
+  const W = 196, H = 176, cx = 98, cy = 98, R = 82, sw = 10, A0 = -210, A1 = 30, MAX = 300;
+  const ang = v => (A0 + (A1 - A0) * Math.min(v, MAX) / MAX) * Math.PI / 180;
+  const pt = (a, r = R) => [cx + r * Math.cos(a), cy + r * Math.sin(a)];
+  const arc = (v0, v1) => { const a0 = ang(v0), a1 = ang(v1), [x0, y0] = pt(a0), [x1, y1] = pt(a1);
+    return `M${x0.toFixed(2)},${y0.toFixed(2)}A${R},${R} 0 ${a1 - a0 > Math.PI ? 1 : 0} 1 ${x1.toFixed(2)},${y1.toFixed(2)}`; };
+  const svg = S("svg", { viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": `AQI ${aqi}, ${cat.name}` });
+  const defs = S("defs"); const f = S("filter", { id: "glow", x: "-50%", y: "-50%", width: "200%", height: "200%" });
+  f.appendChild(S("feGaussianBlur", { stdDeviation: 4 })); defs.appendChild(f); svg.appendChild(defs);
+  svg.appendChild(S("path", { d: arc(0, MAX), fill: "none", stroke: "var(--track)", "stroke-width": sw, "stroke-linecap": "round" }));
+  const segs = [[0, 50, 1], [50, 100, 2], [100, 150, 3], [150, 200, 4], [200, 300, 5]];
+  segs.forEach(([a, b, i], k) => svg.appendChild(S("path", { d: arc(a + (k ? 1.6 : 0), b - (k < 4 ? 1.6 : 0)), fill: "none", stroke: qv(i), "stroke-width": sw, "stroke-linecap": k === 0 || k === 4 ? "round" : "butt", opacity: aqi != null && a < Math.min(aqi, MAX) ? 1 : .22 })));
+  if (aqi != null) { const [mx, my] = pt(ang(aqi));
+    svg.appendChild(S("circle", { cx: mx, cy: my, r: 11, fill: qv(cat.i), opacity: .45, filter: "url(#glow)" }));
+    svg.appendChild(S("circle", { cx: mx, cy: my, r: 8.5, fill: "var(--glass-strong)", stroke: qv(cat.i), "stroke-width": 3.5 })); }
+  return svg;
+}
+
+function insightText(cat, hours) {
+  const parts = [];
+  const fut = hours.filter(x => x.v != null);
+  const change = fut.find(x => pmCat(x.v).i !== cat.i);
+  if (change) {
+    const nc = pmCat(change.v), better = nc.i < cat.i;
+    parts.push([`${better ? "Easing" : "Rising"} to `, nc.short.toLowerCase(), ` ${when(new Date(change.t)) === "overnight" ? "overnight" : "around " + when(new Date(change.t))}.`]);
+  } else if (fut.length) parts.push(["Holding ", cat.short.toLowerCase(), " through the next 24 hours."]);
+  const { best } = bestWorst(hours);
+  if (best && fut.length) parts.push(["Best time outside: ", spanP(best.t), "."]);
+  return parts;
+}
+
+function renderHero() {
+  const host = $("hero"); host.textContent = "";
+  const st = home();
+  if (!st) { host.appendChild(el("div", "empty", "Monitor data unavailable right now.")); return; }
+  const ser = st.series, rev = [...ser].reverse(), last = rev.find(r => r.pm25 != null) || rev[0];
+  const nc = nowcast(ser.map(r => r.pm25)), aqi = pmAqi(nc ?? last.pm25), cat = aqiCat(aqi ?? 0);
+  document.documentElement.dataset.q = cat.i; $("mark-sun").setAttribute("fill", qv(cat.i));
+
+  const g = el("div", "gauge"); g.appendChild(gauge(aqi, cat));
+  const v = el("div", "v"); v.append(el("div", "num", aqi ?? "—"), el("div", "lbl", "US AQI")); g.appendChild(v);
+  const right = el("div");
+  const hc = el("div", "h-cat"); hc.append(dot(qv(cat.i)), cat.i === 3 ? "Unhealthy for sensitive groups" : cat.name);
+  right.append(hc, el("div", "h-sub", `${st.name} monitor · ${fHL(new Date(last.t))} · PM2.5 NowCast`));
+  const ins = el("div", "insight");
+  for (const [a, b, c] of insightText(cat, next24())) { ins.append(a); ins.appendChild(el("b", "", b)); ins.append(c + " "); }
+  host.append(g, right, ins);
+  if (innerWidth > 560) right.appendChild(ins);
+
+  const o3 = rev.find(r => r.o3 != null);
+  const stats = el("div", "stats");
+  const stat = (k, val, u) => { const s = el("div", "stat"); s.appendChild(el("div", "k", k)); const vv = el("div", "v", val); if (u) vv.appendChild(el("small", "", u)); s.appendChild(vv); stats.appendChild(s); };
+  stat("PM2.5", r1(last.pm25), "µg/m³");
+  stat("24h average", r1(last.pm25_24h), "µg/m³");
+  stat("Ozone", o3 ? String(Math.round(o3.o3)) : "—", "ppb");
+  stat("Wind", last.wind_mph != null ? String(Math.round(last.wind_mph)) : "—", "mph");
+  stat("Temp", last.temp_f != null ? Math.round(last.temp_f) + "°" : "—", "F");
+  host.appendChild(stats);
+}
+
+/* ============================================================ forecast */
+const CW = [["unhealthy for sensitive", 3], ["usg", 3], ["very unhealthy", 5], ["hazardous", 6], ["unhealthy", 4], ["moderate", 2], ["good", 1]];
+function renderDays() {
+  const host = $("days"); host.textContent = "";
+  const rss = (D.daq_forecast && D.daq_forecast.rss) || [];
+  if (!rss.length) { host.appendChild(el("div", "empty", "DAQ forecast unavailable right now.")); return; }
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  for (const it of rss.slice(0, 3)) {
+    const txt = `${it.title}\n${it.description}`.toLowerCase();
+    const m = CW.find(([w]) => txt.includes(w)), act = (txt.match(/\b(unrestricted|voluntary|mandatory)\b/) || [])[1];
+    const dt = new Date(it.title.replace(/^[a-z]+,\s*/i, ""));
+    let label = it.title;
+    if (!isNaN(dt)) { const diff = Math.round((dt - today) / 864e5); label = diff === 0 ? "Today" : diff === 1 ? "Tomorrow" : dt.toLocaleDateString([], { weekday: "long" }); }
+    const row = el("div", "day"); row.appendChild(el("div", "d", label));
+    if (m) { const c = CATS[m[1] - 1]; const q = el("div", "q"); q.append(dot(qv(c.i)), c.short); row.appendChild(q);
+      if (act) { const pl = el("span", "a" + (act === "voluntary" ? " v" : act === "mandatory" ? " m" : ""));
+        pl.append(act === "unrestricted" ? "No restrictions" : act[0].toUpperCase() + act.slice(1)); if (act !== "unrestricted") pl.appendChild(el("span", "lgw", " action")); row.appendChild(pl); } else row.appendChild(el("span"));
+    } else row.appendChild(el("div", "raw", it.description));
+    host.appendChild(row);
+  }
+}
+
+/* ============================================================ conditions */
+const IC = {
+  layers: '<path d="M2 5.5h12M2 8h12M2 10.5h12" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" fill="none"/>',
+  smoke: '<path d="M3 11c1.5 0 1.5-2 3-2s1.5 2 3 2 1.5-2 3-2M4 6.5c1.2 0 1.2-1.6 2.4-1.6S7.6 6.5 8.8 6.5 10 4.9 11.2 4.9" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" fill="none"/>',
+  sun: '<circle cx="8" cy="8" r="2.6" stroke="currentColor" stroke-width="1.4" fill="none"/><path d="M8 1.8v1.5M8 12.7v1.5M1.8 8h1.5M12.7 8h1.5M3.6 3.6l1 1M11.4 11.4l1 1M3.6 12.4l1-1M11.4 4.6l1-1" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>',
+};
+function renderConds() {
+  const host = $("conds"); host.textContent = "";
+  const now = Date.now();
+  const add = (icon, k, v, s, pct, c) => { const d = el("div", "cond"); const kk = el("div", "k");
+    const sv = S("svg", { viewBox: "0 0 16 16" }); sv.innerHTML = IC[icon]; kk.append(sv, k);
+    d.append(kk, el("div", "v", v), el("div", "s", s));
+    if (pct != null) { const mt = el("div", "meter"); const i = el("i"); i.style.width = Math.max(4, Math.min(100, pct)) + "%"; i.style.setProperty("--c", c); mt.appendChild(i); d.appendChild(mt); }
+    host.appendChild(d); };
+  // inversion
+  const met = ((D.met && D.met.series) || []).map(r => ({ t: new Date(r.t).getTime(), v: r.blh_m })).filter(p => p.v != null && p.t >= now - HOUR && p.t <= now + 24 * HOUR);
+  if (met.length) { const peak = Math.max(...met.map(p => p.v));
+    const [v, c, pct] = peak < 400 ? ["Strong", qv(4), 90] : peak < 900 ? ["Weak", qv(2), 55] : ["None", qv(1), 15];
+    add("layers", "Inversion", v, `Mixing peaks ~${Math.round(peak / 50) * 50} m`, pct, c);
+  } else add("layers", "Inversion", "—", "No data");
+  // smoke
+  const sm = ((D.noaa && D.noaa.smoke && D.noaa.smoke.series) || []).map(r => ({ t: new Date(r.t).getTime(), v: r.v })).filter(p => p.v != null && p.t >= now && p.t <= now + 24 * HOUR);
+  if (sm.length) { const pk = Math.max(...sm.map(p => p.v));
+    const [v, c] = pk < 2 ? ["None", qv(1)] : pk < 10 ? ["Light", qv(2)] : pk < 35 ? ["Moderate", qv(3)] : ["Heavy", qv(4)];
+    add("smoke", "Smoke", v, `Peak ~${r1(pk)} µg/m³`, pk / 50 * 100, c);
+  } else add("smoke", "Smoke", "—", "No model data");
+  // ozone
+  const o3 = hourlyO3().filter(p => p.v != null && p.t >= now && p.t <= now + 24 * HOUR);
+  if (o3.length) { const pk = o3.reduce((a, b) => b.v > a.v ? b : a);
+    const [v, c] = pk.v < 55 ? ["Low", qv(1)] : pk.v < 71 ? ["Moderate", qv(2)] : pk.v < 86 ? ["High", qv(3)] : ["Very high", qv(4)];
+    add("sun", "Ozone", v, `Peak ${Math.round(pk.v)} ppb · ${fH(new Date(pk.t))}`, pk.v / 100 * 100, c);
+  } else add("sun", "Ozone", "—", "No data");
+}
+
+/* ============================================================ 24h */
+function render24() {
+  const host = $("h24"), pills = $("pills"); host.textContent = ""; pills.textContent = "";
+  const hours = next24(), { src, bc } = hourlyPM();
+  if (hours.filter(x => x.v != null).length < 6) { host.appendChild(el("div", "empty", "Hourly forecast unavailable right now.")); return; }
+  const max = Math.max(12, ...hours.map(x => x.v ?? 0)) * 1.06;
+  const { best, worst } = bestWorst(hours);
+  const pill = (lab, val, c, cls) => { const p = el("span", "pill" + (cls ? " " + cls : "")); if (c) p.appendChild(dot(c)); p.append(lab + " "); p.appendChild(el("b", "", val)); pills.appendChild(p); };
+  if (best) pill("Best", span2(best.t), qv(pmCat(best.v).i));
+  if (worst && best && worst.v - best.v >= 2) pill("Worst", span2(worst.t), qv(pmCat(worst.v).i), "opt");
+
+  const grid = el("div", "hours"), mix = el("div", "mix"), axis = el("div", "axis");
+  hours.forEach((x, i) => {
+    const d = new Date(x.t), c = pmCat(x.v), col = el("div", "hr");
+    if (x.v != null) { col.appendChild(el("div", "val", Math.round(x.v)));
+      const b = el("div", "b"); b.style.height = Math.max(6, x.v / max * 100) + "%"; b.style.setProperty("--c", qv(c.i)); col.appendChild(b); }
+    const show = () => { const r = col.getBoundingClientRect(), rows = [];
+      if (x.v != null) rows.push({ dot: qv(c.i), label: c.short, value: `${r1(x.v)} µg/m³` });
+      if (x.m) rows.push({ label: "Mixing height", value: `${Math.round(x.m.blh_m)} m` });
+      if (x.m && x.m.wind_mph != null) rows.push({ label: "Wind", value: `${Math.round(x.m.wind_mph)} mph` });
+      showTip(r.left + r.width / 2, r.top + 20, (i === 0 ? "Now · " : "") + fDH(d), rows); };
+    col.addEventListener("pointerenter", show); col.addEventListener("pointerdown", show); col.addEventListener("pointerleave", hideTip);
+    grid.appendChild(col);
+    const mi = el("i"), blh = x.m ? x.m.blh_m : null;
+    mi.style.opacity = blh == null ? .05 : blh < 300 ? .9 : blh < 700 ? .5 : blh < 1200 ? .22 : .1; mix.appendChild(mi);
+    axis.appendChild(el("span", i === 0 ? "now" : "", i === 0 ? "Now" : i % 3 === 0 ? fH(d) : ""));
+  });
+  host.append(grid, mix, axis);
+  if (best) { // highlight band over best 2h window
+    const band = el("div", "best"); band.appendChild(el("span", "", "Best"));
+    grid.appendChild(band);
+    requestAnimationFrame(() => { const a = grid.children[best.i], b = grid.children[best.i + 1]; if (!a || !b) return;
+      band.style.left = (a.offsetLeft - 3) + "px"; band.style.width = (b.offsetLeft + b.offsetWidth - a.offsetLeft + 6) + "px"; });
+  }
+  const foot = el("div", "foot"), sw = el("span", "sw"); sw.append(el("i"), "Trapped air");
+  foot.append(sw, el("span", "src", `PM2.5 µg/m³ · ${src === "NOAA" ? "NOAA model" + (bc ? ", bias-corrected" : "") : "CAMS model"}`));
+  host.appendChild(foot);
+}
+
+/* ============================================================ trend chart */
+function nice(raw) { const p = 10 ** Math.floor(Math.log10(Math.max(raw, 1e-6))), n = raw / p; return (n <= 1 ? 1 : n <= 2 ? 2 : n <= 2.5 ? 2.5 : n <= 5 ? 5 : 10) * p; }
+function chart(host, { series, bands, refs = [], unit, x0, x1, H }) {
+  host.textContent = "";
+  const vals = series.flatMap(s => s.points.filter(p => p.t >= x0 && p.t <= x1 && p.v != null).map(p => p.v));
+  if (!vals.length) { host.appendChild(el("div", "empty", "No data available right now.")); return; }
+  const W = Math.max(host.clientWidth - 12, 280), m = { l: 40, r: 12, t: 14, b: 24 }, iw = W - m.l - m.r, ih = H - m.t - m.b;
+  let yM = Math.max(...vals, ...refs.map(r => r.v * 1.15)); const st = nice(yM / 4); yM = Math.ceil(yM * 1.05 / st) * st;
+  const x = t => m.l + (t - x0) / (x1 - x0) * iw, y = v => m.t + ih - v / yM * ih;
+  const svg = S("svg", { viewBox: `0 0 ${W} ${H}`, height: H });
+  const defs = S("defs"); svg.appendChild(defs);
+  if (bands) { let lo = 0; for (const b of bands) { if (lo >= yM) break; const hi = Math.min(b.max, yM);
+    svg.appendChild(S("rect", { x: m.l, width: iw, y: y(hi), height: y(lo) - y(hi), fill: qv(b.i), "fill-opacity": .07 }));
+    if (y(lo) - y(hi) > 15) { const t = S("text", { x: m.l + iw - 6, y: y(hi) + 13, "text-anchor": "end" }); t.textContent = b.short; svg.appendChild(t); } lo = b.max; } }
+  for (let v = 0; v <= yM + 1e-9; v += st) {
+    svg.appendChild(S("line", { x1: m.l, x2: m.l + iw, y1: y(v), y2: y(v), stroke: "var(--glass-line)", "stroke-width": 1 }));
+    const t = S("text", { x: m.l - 10, y: y(v) + 3.5, "text-anchor": "end" }); t.textContent = v >= 1000 ? v / 1000 + "k" : v; svg.appendChild(t); }
+  const f = new Date(x0); f.setMinutes(0, 0, 0);
+  for (let t = f.getTime(); t <= x1; t += HOUR) { const d = new Date(t), h = d.getHours(); if (h !== 0 && h !== 12) continue;
+    const X = x(t); if (X < m.l + 14 || X > m.l + iw - 14) continue;
+    const tx = S("text", { x: X, y: H - 6, "text-anchor": "middle" }); tx.textContent = h === 0 ? d.toLocaleDateString([], { weekday: "short" }) : "noon"; svg.appendChild(tx); }
+  for (const r of refs) { svg.appendChild(S("line", { x1: m.l, x2: m.l + iw, y1: y(r.v), y2: y(r.v), stroke: "var(--fg-3)", "stroke-dasharray": "3 4", "stroke-opacity": .6 }));
+    const t = S("text", { x: m.l + 6, y: y(r.v) - 6 }); t.textContent = r.label; svg.appendChild(t); }
+  // past shading
+  const now = Date.now();
+  svg.appendChild(S("rect", { x: m.l, y: m.t, width: Math.max(0, x(now) - m.l), height: ih, fill: "var(--fg)", "fill-opacity": .025 }));
+  svg.appendChild(S("line", { x1: x(now), x2: x(now), y1: m.t, y2: m.t + ih, stroke: "var(--fg-3)", "stroke-dasharray": "2 3" }));
+  const nt = S("text", { x: x(now) + 6, y: m.t + 10 }); nt.textContent = "now"; svg.appendChild(nt);
+  series.forEach((s, si) => {
+    const P = s.points.filter(p => p.t >= x0 && p.t <= x1).sort((a, b) => a.t - b.t); let d = "", pen = false, prev = null;
+    for (const p of P) { if (p.v == null || (prev && p.t - prev > 2.5 * HOUR)) pen = false; if (p.v == null) { prev = p.t; continue; }
+      d += (pen ? "L" : "M") + x(p.t).toFixed(1) + "," + y(p.v).toFixed(1); pen = true; prev = p.t; }
+    if (s.area && d) { const q = P.filter(p => p.v != null), id = "ga" + si;
+      const lg = S("linearGradient", { id, x1: 0, y1: 0, x2: 0, y2: 1 }); lg.append(S("stop", { offset: 0, "stop-color": s.color, "stop-opacity": .22 }), S("stop", { offset: 1, "stop-color": s.color, "stop-opacity": 0 })); defs.appendChild(lg);
+      svg.appendChild(S("path", { d: d + `L${x(q[q.length - 1].t)},${y(0)}L${x(q[0].t)},${y(0)}Z`, fill: `url(#${id})` })); }
+    svg.appendChild(S("path", { d, fill: "none", stroke: s.color, "stroke-width": s.w || 2, "stroke-linejoin": "round", "stroke-linecap": "round", "stroke-dasharray": s.dash ? "4 4" : "" }));
+  });
+  const hair = S("line", { y1: m.t, y2: m.t + ih, stroke: "var(--fg-3)", opacity: 0 }); svg.appendChild(hair);
+  const dots = series.map(s => { const c = S("circle", { r: 4, fill: s.color, stroke: "var(--glass-strong)", "stroke-width": 2, opacity: 0 }); svg.appendChild(c); return c; });
+  const hit = S("rect", { x: m.l, y: 0, width: iw, height: H, fill: "transparent" }); svg.appendChild(hit);
+  host.appendChild(svg);
+  const maps = series.map(s => new Map(s.points.filter(p => p.v != null).map(p => [hk(p.t), p])));
+  const move = ev => { const rc = svg.getBoundingClientRect(), px = (ev.clientX - rc.left) * W / rc.width, t = x0 + (px - m.l) / iw * (x1 - x0);
+    if (t < x0 || t > x1) return leave(); const h = Math.round(t / HOUR), tt = h * HOUR, rows = [];
+    hair.setAttribute("x1", x(tt)); hair.setAttribute("x2", x(tt)); hair.setAttribute("opacity", .7);
+    series.forEach((s, i) => { const p = maps[i].get(h); if (p) { dots[i].setAttribute("cx", x(p.t)); dots[i].setAttribute("cy", y(p.v)); dots[i].setAttribute("opacity", 1);
+      rows.push({ key: s.color, dash: s.dash, label: s.name, value: `${r1(p.v)} ${unit}` }); } else dots[i].setAttribute("opacity", 0); });
+    showTip(rc.left + x(tt) * rc.width / W, rc.top + m.t, fDH(new Date(tt)), rows.length ? rows : [{ label: "No data", value: "" }]); };
+  const leave = () => { hair.setAttribute("opacity", 0); dots.forEach(d => d.setAttribute("opacity", 0)); hideTip(); };
+  hit.addEventListener("pointermove", move); hit.addEventListener("pointerdown", move); hit.addEventListener("pointerleave", leave);
+}
+function renderTrend() {
+  if (!D) return;
+  const now = Date.now(), st = home(), n = D.noaa || {}, cams = (D.cams && D.cams.series) || [], met = (D.met && D.met.series) || [];
+  const x0 = now - 24 * HOUR, x1 = now + 60 * HOUR, s = []; let cfg = {}, note = "";
+  const obs = (k) => st && s.push({ name: "Measured", color: "var(--s-obs)", points: pts(st.series, k) });
+  if (METRIC === "pm") { obs("pm25");
+    if (n.pm25) s.push({ name: "NOAA forecast", color: "var(--s-1)", area: true, points: pts(n.pm25.series, "v") });
+    if (cams.length) s.push({ name: "CAMS model", color: "var(--s-2)", dash: true, w: 1.5, points: pts(cams, "pm25") });
+    cfg = { bands: CATS, unit: "µg/m³" }; note = "Models tend to under-predict deep inversions. Use DAQ's forecast for whether it's a bad day, and these lines for when.";
+  } else if (METRIC === "o3") { obs("o3");
+    if (n.o3) s.push({ name: "NOAA forecast", color: "var(--s-1)", area: true, points: pts(n.o3.series, "v") });
+    if (cams.length) s.push({ name: "CAMS model", color: "var(--s-2)", dash: true, w: 1.5, points: pts(cams, "o3") });
+    cfg = { refs: [{ v: 70, label: "70 ppb · sensitive groups" }], unit: "ppb" }; note = "Ozone peaks on sunny summer afternoons. In winter, PM2.5 matters more.";
+  } else { s.push({ name: "Mixing height", color: "var(--s-1)", area: true, points: pts(met, "blh_m") });
+    cfg = { refs: [{ v: 500, label: "≈ inversion" }], unit: "m" }; note = "How deep the air is that pollution mixes into. Below about 500 m the valley is capped and PM2.5 builds."; }
+  const lg = $("legend"); lg.textContent = "";
+  for (const x of s.length > 1 ? s : []) { const sp = el("span"), k = el("span", "key" + (x.dash ? " dash" : "")); k.style.setProperty("--c", x.color); sp.append(k, x.name); lg.appendChild(sp); }
+  lg.style.display = s.length > 1 ? "" : "none";
+  $("note").textContent = note;
+  chart($("chart"), { series: s, x0, x1, H: innerWidth < 560 ? 210 : innerWidth < 980 ? 250 : 292, ...cfg });
+}
+
+/* ============================================================ stations */
+function renderStations() {
+  const host = $("stations"); host.textContent = "";
+  const rows = (D.stations || []).map(s => { const l = (s.series || []).slice().reverse().find(r => r.pm25_24h != null || r.pm25 != null);
+    return { name: s.name, v: l ? (l.pm25_24h ?? l.pm25) : null, now: l ? l.pm25 : null }; });
+  const mx = Math.max(20, ...rows.map(r => r.v ?? 0));
+  for (const r of rows) {
+    const row = el("div", "srow"), n = el("div", "n", r.name.replace(" (Midvale)", ""));
+    n.appendChild(el("small", "", r.now != null ? `now ${r1(r.now)}` : "no PM2.5 now"));
+    const bar = el("div", "bar"), i = el("i");
+    if (r.v != null) { i.style.width = Math.max(4, r.v / mx * 100) + "%"; i.style.setProperty("--c", qv(pmCat(r.v).i)); }
+    bar.appendChild(i);
+    row.append(n, bar, el("div", "v" + (r.v == null ? " na" : ""), r1(r.v)));
+    host.appendChild(row);
+  }
+  host.appendChild(el("div", "unit", "µg/m³. Colors use the 24-hour AQI breakpoints."));
+}
+
+function renderStatus() {
+  const host = $("status"); host.textContent = ""; const e = D.errors || [];
+  if (!e.length) { host.textContent = "Utah DAQ · NOAA · CAMS · all sources OK"; return; }
+  const d = el("details"); d.appendChild(el("summary", "", `${e.length} source${e.length > 1 ? "s" : ""} unavailable ›`));
+  const b = el("div"); e.forEach(x => b.appendChild(el("div", "", `${x.source}: ${x.error}`))); d.appendChild(b); host.appendChild(d);
+}
+
+function renderAll() {
+  const gen = new Date(D.generated_at);
+  $("loc").textContent = D.location.name;
+  $("updated").textContent = `${ago(gen)}`;
+  const stale = Date.now() - gen > 2 * HOUR; $("pulse").classList.toggle("stale", stale); document.querySelector(".status .live").textContent = stale ? "Delayed" : "Live";
+  renderHero(); renderDays(); renderConds(); render24(); renderTrend(); renderStations(); renderStatus();
+}
+async function load() {
+  const b = $("reload"); b.classList.add("spin");
+  try { const r = await fetch("data.json?t=" + Date.now(), { cache: "no-store" }); if (!r.ok) throw new Error(r.status); D = await r.json(); renderAll(); }
+  catch (e) { $("updated").textContent = "no data yet"; }
+  finally { setTimeout(() => b.classList.remove("spin"), 350); }
+}
+document.querySelectorAll(".seg button").forEach(b => b.addEventListener("click", () => {
+  METRIC = b.dataset.m; document.querySelectorAll(".seg button").forEach(x => x.setAttribute("aria-pressed", x === b)); renderTrend(); }));
+$("reload").addEventListener("click", load);
+let rz, lastW = innerWidth;
+addEventListener("resize", () => { clearTimeout(rz); rz = setTimeout(() => { if (D && innerWidth !== lastW) { lastW = innerWidth; renderAll(); } }, 150); });
+addEventListener("scroll", hideTip, { passive: true });
+document.addEventListener("pointerdown", e => { if (!e.target.closest(".hr, .chart")) hideTip(); });
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && D && Date.now() - new Date(D.generated_at) > 45 * 6e4) load(); });
+setInterval(() => { if (D) $("updated").textContent = `${ago(new Date(D.generated_at))}`; }, 6e4);
+load();
+</script>
+</body>
+</html>
