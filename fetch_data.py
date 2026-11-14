@@ -56,18 +56,25 @@ def log(msg):
     print(msg, file=sys.stderr)
 
 
-def get(url, params=None, timeout=40, tries=3):
+RUN_START = time.monotonic()
+RUN_BUDGET_S = 330  # stop retrying slow sources after ~5.5 min so the run always finishes
+
+
+def get(url, params=None, timeout=25, tries=2):
     if params:
         url = url + ("&" if "?" in url else "?") + urllib.parse.urlencode(params)
     last = None
     for i in range(tries):
+        if time.monotonic() - RUN_START > RUN_BUDGET_S:
+            raise RuntimeError("skipped: run time budget used up by slow sources")
         try:
             req = urllib.request.Request(url, headers={"User-Agent": UA})
             with urllib.request.urlopen(req, timeout=timeout) as r:
                 return r.read().decode("utf-8", errors="replace")
         except Exception as e:  # noqa: BLE001
             last = e
-            time.sleep(2 * (i + 1))
+            if i + 1 < tries:
+                time.sleep(2)
     raise RuntimeError(f"GET failed {url[:140]}: {last}")
 
 
@@ -199,12 +206,33 @@ def noaa_services():
     return [s["name"].split("/")[-1] for s in data.get("services", []) if s.get("type") == "ImageServer"]
 
 
+NOAA_CAP = 20  # the server returns at most this many samples per getSamples call
+
+
+def _noaa_window(base, common, t0, t1, variant, depth=0):
+    """Samples for [t0, t1] ms; splits the window when the server cap is hit."""
+    params = dict(common, time=f"{t0},{t1}")
+    if variant == 0:
+        params["mosaicRule"] = json.dumps({"mosaicMethod": "esriMosaicNone"})
+    data = json.loads(get(base, params))
+    if "error" in data:
+        raise RuntimeError(json.dumps(data["error"])[:300])
+    samples = data.get("samples", [])
+    if len(samples) >= NOAA_CAP and t1 - t0 > 3600000 and depth < 6:
+        mid = t0 + (t1 - t0) // 2 // 3600000 * 3600000
+        return (_noaa_window(base, common, t0, mid, variant, depth + 1)
+                + _noaa_window(base, common, mid + 1, t1, variant, depth + 1))
+    return samples
+
+
 def noaa_point_series(service, now):
-    """Hourly values at LAT/LON from a time-enabled NDGD ImageServer, latest model run only."""
+    """Hourly values at LAT/LON from a time-enabled NDGD ImageServer.
+
+    The service caps each response at ~20 samples, so we walk the forecast in
+    small time windows and, for every valid hour, keep the newest model run.
+    """
     base = f"{NOAA_ROOT}/{service}/ImageServer/getSamples"
     geom = json.dumps({"x": LON, "y": LAT, "spatialReference": {"wkid": 4326}})
-    t0 = int((now - timedelta(hours=6)).timestamp() * 1000)
-    t1 = int((now + timedelta(hours=84)).timestamp() * 1000)
     common = {
         "geometry": geom,
         "geometryType": "esriGeometryPoint",
@@ -212,42 +240,43 @@ def noaa_point_series(service, now):
         "outFields": "idp_validtime,idp_issueddate,idp_fcst_hour",
         "f": "json",
     }
-    attempts = [
-        dict(common, time=f"{t0},{t1}", mosaicRule=json.dumps({"mosaicMethod": "esriMosaicNone"})),
-        dict(common, time=f"{t0},{t1}"),
-        dict(common),
-    ]
-    last_err = None
-    for params in attempts:
-        try:
-            data = json.loads(get(base, params))
-            if "error" in data:
-                raise RuntimeError(json.dumps(data["error"])[:300])
-            samples = data.get("samples", [])
-            # Each forecast hour can carry its own issue stamp, so keep, for every
-            # valid hour, the value from the most recently issued model run.
-            best = {}
-            for s in samples:
-                a = {k.lower(): v for k, v in (s.get("attributes") or {}).items()}
-                vt = a.get("idp_validtime")
-                issued = a.get("idp_issueddate") or 0
-                raw = s.get("value")
-                v = fnum(str(raw).split()[0]) if raw not in (None, "") else None
-                if vt is None or v is None or v < 0 or v > 5000:
-                    continue
-                hour = int(vt) // 3600000 * 3600000
-                if hour not in best or issued >= best[hour][0]:
-                    best[hour] = (issued, v)
-            if not best:
-                raise RuntimeError(f"no usable samples (got {len(samples)})")
-            latest = max(i for i, _ in best.values())
-            series = [{"t": iso(datetime.fromtimestamp(ms / 1000, tz=timezone.utc)), "v": round(v, 1)}
-                      for ms, (_, v) in sorted(best.items())]
-            issued_s = iso(datetime.fromtimestamp(latest / 1000, tz=timezone.utc)) if latest else None
-            return {"service": service, "issued": issued_s, "samples": len(samples), "series": series}
-        except Exception as e:  # noqa: BLE001
-            last_err = e
-    raise RuntimeError(f"{service}: {last_err}")
+    h0 = int((now - timedelta(hours=2)).timestamp() // 3600 * 3600 * 1000)
+    h_end = int((now + timedelta(hours=78)).timestamp() * 1000)
+    step = 6 * 3600000
+    samples, variant, errs = [], None, []
+    for w0 in range(h0, h_end, step):
+        w1 = w0 + step - 1
+        for v in ([variant] if variant is not None else [0, 1]):
+            try:
+                samples += _noaa_window(base, common, w0, w1, v)
+                variant = v
+                break
+            except Exception as e:  # noqa: BLE001
+                errs.append(str(e)[:120])
+                if "timed out" in str(e).lower() or "budget" in str(e):
+                    break
+        if variant is None and len(errs) >= 2:
+            raise RuntimeError(f"{service}: {' | '.join(errs[:2])}")
+    best = {}
+    for s in samples:
+        a = {k.lower(): v for k, v in (s.get("attributes") or {}).items()}
+        vt = a.get("idp_validtime")
+        issued = a.get("idp_issueddate") or 0
+        raw = s.get("value")
+        v = fnum(str(raw).split()[0]) if raw not in (None, "") else None
+        if vt is None or v is None or v < 0 or v > 5000:
+            continue
+        hour = int(vt) // 3600000 * 3600000
+        if hour not in best or issued >= best[hour][0]:
+            best[hour] = (issued, v)
+    if not best:
+        raise RuntimeError(f"{service}: no usable samples ({len(samples)} raw; {' | '.join(errs[:2])})")
+    latest = max(i for i, _ in best.values())
+    series = [{"t": iso(datetime.fromtimestamp(ms / 1000, tz=timezone.utc)), "v": round(v, 1)}
+              for ms, (_, v) in sorted(best.items())]
+    return {"service": service,
+            "issued": iso(datetime.fromtimestamp(latest / 1000, tz=timezone.utc)) if latest else None,
+            "samples": len(samples), "series": series}
 
 
 def fetch_noaa(now):
@@ -350,6 +379,48 @@ def fetch_met():
     return None
 
 
+# ------------------------------------------------------------ resilience ----
+def reuse_previous(data, now):
+    """If a source failed this run, keep last run's copy while it still has future hours."""
+    try:
+        with open(OUT) as f:
+            prev = json.load(f)
+    except Exception:  # noqa: BLE001
+        return
+    stamp = prev.get("generated_at")
+
+    def still_useful(block):
+        ser = (block or {}).get("series") or []
+        return any(datetime.fromisoformat(p["t"]) > now + timedelta(hours=6) for p in ser)
+
+    for key in ("cams", "met"):
+        if not data.get(key) and still_useful(prev.get(key)):
+            data[key] = dict(prev[key], stale_from=stamp)
+    for key in ("pm25", "o3", "smoke"):
+        if key not in data["noaa"] and still_useful((prev.get("noaa") or {}).get(key)):
+            data["noaa"][key] = dict(prev["noaa"][key], stale_from=stamp)
+
+
+def calibrate_cams(data):
+    """CAMS is a ~40 km global model and often reads far off in the valley.
+    Scale its PM2.5 by how it compared with the home monitor over the last 24 h."""
+    cams = data.get("cams")
+    home = next((s for s in data["stations"] if s["series"]), None)
+    if not cams or not home:
+        return
+    obs = {r["t"][:13]: r["pm25"] for r in home["series"][-24:] if r["pm25"] is not None}
+    pairs = [(obs[p["t"][:13]], p["pm25"]) for p in cams["series"]
+             if p["t"][:13] in obs and p["pm25"] is not None]
+    if len(pairs) < 8:
+        return
+    ratios = sorted((o + 1) / (c + 1) for o, c in pairs)
+    factor = max(0.15, min(2.0, ratios[len(ratios) // 2]))
+    for p in cams["series"]:
+        if p["pm25"] is not None:
+            p["pm25_adj"] = round(p["pm25"] * factor, 1)
+    cams["calibration"] = {"factor": round(factor, 2), "hours": len(pairs), "station": home["name"]}
+
+
 # ------------------------------------------------------------------- main ----
 def main():
     now = datetime.now(TZ)
@@ -358,10 +429,12 @@ def main():
         "location": {"name": LOCATION_NAME, "lat": LAT, "lon": LON},
         "stations": fetch_stations(now),
         "daq_forecast": fetch_daq_forecast(),
-        "noaa": fetch_noaa(now),
         "cams": fetch_cams(),
         "met": fetch_met(),
     }
+    data["noaa"] = fetch_noaa(now)  # slowest source goes last
+    reuse_previous(data, now)
+    calibrate_cams(data)
     data["errors"] = errors
     with open(OUT, "w") as f:
         json.dump(data, f, separators=(",", ":"))

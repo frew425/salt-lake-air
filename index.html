@@ -191,7 +191,8 @@ a { color: inherit; text-decoration: none; }
 .hr { position: relative; height: 100%; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; }
 .hr .b { width: 100%; max-width: 30px; border-radius: 999px; min-height: 8px; background: linear-gradient(180deg, color-mix(in srgb, var(--c) 72%, white), var(--c)); box-shadow: inset 0 1px 0 rgba(255,255,255,.35); transition: opacity .15s, transform .15s; transform-origin: bottom; }
 .hr .val { font-size: 10.5px; color: var(--fg-3); margin-bottom: 5px; }
-.hours:hover .hr .b { opacity: .45; } .hours .hr:hover .b { opacity: 1; transform: scaleY(1.02); }
+@media (hover: hover) { .hours:hover .hr .b { opacity: .45; } .hours .hr:hover .b { opacity: 1; } }
+.hours:has(.hr.sel) .hr .b { opacity: .45; } .hours:has(.hr.sel) .hr.sel .b { opacity: 1; }
 .best { position: absolute; top: 0; height: 100%; border-radius: 14px; background: color-mix(in srgb, var(--q1) 10%, transparent); border: 1px dashed color-mix(in srgb, var(--q1) 55%, transparent); pointer-events: none; }
 .best span { position: absolute; top: 4px; left: 50%; transform: translateX(-50%); font-size: 10.5px; font-weight: 500; color: color-mix(in srgb, var(--q1) 70%, var(--fg)); white-space: nowrap; }
 .mix { display: grid; grid-template-columns: repeat(24, minmax(0,1fr)); gap: 5px; margin-top: 10px; }
@@ -406,8 +407,9 @@ function blend(noaaSeries, camsKey) {
   for (const p of pts(noaaSeries, "v")) if (p.v != null) out.set(hk(p.t), { t: p.t, v: p.v, s: "NOAA" });
   return [...out.values()].sort((a, b) => a.t - b.t);
 }
+const camsPM = () => (D.cams && D.cams.series || [])[0] && "pm25_adj" in D.cams.series[0] ? "pm25_adj" : "pm25";
 function hourlyPM() {
-  const n = D.noaa || {}, p = blend(n.pm25 && n.pm25.series, "pm25");
+  const n = D.noaa || {}, p = blend(n.pm25 && n.pm25.series, camsPM());
   const now = Date.now(), next = p.filter(x => x.t >= now - HOUR && x.t <= now + 24 * HOUR);
   const nn = next.filter(x => x.s === "NOAA").length;
   const src = !next.length ? "CAMS" : nn === next.length ? "NOAA" : nn === 0 ? "CAMS" : "NOAA + CAMS";
@@ -502,7 +504,7 @@ function renderDays() {
   for (const it of rss.slice(0, 3)) {
     const txt = `${it.title}\n${it.description}`.toLowerCase();
     const m = CW.find(([w]) => txt.includes(w)), act = (txt.match(/\b(unrestricted|voluntary|mandatory)\b/) || [])[1];
-    const dt = new Date(it.title.replace(/^[a-z]+,\s*/i, ""));
+    const dm = it.title.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/), dt = dm ? new Date(+dm[3], dm[1] - 1, +dm[2]) : new Date(NaN);
     let label = it.title;
     if (!isNaN(dt)) { const diff = Math.round((dt - today) / 864e5); label = diff === 0 ? "Today" : diff === 1 ? "Tomorrow" : dt.toLocaleDateString([], { weekday: "long" }); }
     const row = el("div", "day"); row.appendChild(el("div", "d", label));
@@ -553,7 +555,8 @@ function render24() {
   const host = $("h24"), pills = $("pills"); host.textContent = ""; pills.textContent = "";
   const hours = next24(), { src, bc } = hourlyPM();
   if (hours.filter(x => x.v != null).length < 6) { host.appendChild(el("div", "empty", "Hourly forecast unavailable right now.")); return; }
-  const max = Math.max(12, ...hours.map(x => x.v ?? 0)) * 1.06;
+  hours.forEach(x => { x.aqi = pmAqi(x.v); });
+  const max = Math.max(60, ...hours.map(x => x.aqi ?? 0)) * 1.06;
   const { best, worst } = bestWorst(hours);
   const pill = (lab, val, c, cls) => { const p = el("span", "pill" + (cls ? " " + cls : "")); if (c) p.appendChild(dot(c)); p.append(lab + " "); p.appendChild(el("b", "", val)); pills.appendChild(p); };
   if (best) pill("Best", span2(best.t), qv(pmCat(best.v).i));
@@ -562,14 +565,18 @@ function render24() {
   const grid = el("div", "hours"), mix = el("div", "mix"), axis = el("div", "axis");
   hours.forEach((x, i) => {
     const d = new Date(x.t), c = pmCat(x.v), col = el("div", "hr");
-    if (x.v != null) { col.appendChild(el("div", "val", Math.round(x.v)));
-      const b = el("div", "b"); b.style.height = Math.max(6, x.v / max * 100) + "%"; b.style.setProperty("--c", qv(c.i)); col.appendChild(b); }
+    if (x.v != null) { col.appendChild(el("div", "val", x.aqi));
+      const b = el("div", "b"); b.style.height = Math.max(6, x.aqi / max * 100) + "%"; b.style.setProperty("--c", qv(c.i)); col.appendChild(b); }
     const show = () => { const r = col.getBoundingClientRect(), rows = [];
-      if (x.v != null) rows.push({ dot: qv(c.i), label: c.short, value: `${r1(x.v)} µg/m³` });
+      grid.querySelectorAll(".hr.sel").forEach(e => e.classList.remove("sel")); col.classList.add("sel");
+      if (x.v != null) { rows.push({ dot: qv(c.i), label: c.short, value: `AQI ${x.aqi}` }); rows.push({ label: "PM2.5", value: `${r1(x.v)} µg/m³` }); }
       if (x.m) rows.push({ label: "Mixing height", value: `${Math.round(x.m.blh_m)} m` });
       if (x.m && x.m.wind_mph != null) rows.push({ label: "Wind", value: `${Math.round(x.m.wind_mph)} mph` });
       showTip(r.left + r.width / 2, r.top + 20, (i === 0 ? "Now · " : "") + fDH(d), rows); };
-    col.addEventListener("pointerenter", show); col.addEventListener("pointerdown", show); col.addEventListener("pointerleave", hideTip);
+    // mouse: hover shows, leave hides. touch: tap shows and it stays until you tap elsewhere or scroll.
+    col.addEventListener("pointerenter", e => { if (e.pointerType === "mouse") show(); });
+    col.addEventListener("pointerleave", e => { if (e.pointerType === "mouse") { hideTip(); col.classList.remove("sel"); } });
+    col.addEventListener("click", show);
     grid.appendChild(col);
     const mi = el("i"), blh = x.m ? x.m.blh_m : null;
     mi.style.opacity = blh == null ? .05 : blh < 300 ? .9 : blh < 700 ? .5 : blh < 1200 ? .22 : .1; mix.appendChild(mi);
@@ -583,7 +590,7 @@ function render24() {
       band.style.left = (a.offsetLeft - 3) + "px"; band.style.width = (b.offsetLeft + b.offsetWidth - a.offsetLeft + 6) + "px"; });
   }
   const foot = el("div", "foot"), sw = el("span", "sw"); sw.append(el("i"), "Trapped air");
-  foot.append(sw, el("span", "src", `PM2.5 µg/m³ · ${src === "NOAA" ? "NOAA model" + (bc ? ", bias-corrected" : "") : src === "CAMS" ? "CAMS model" : "NOAA, gaps filled by CAMS"}`));
+  foot.append(sw, el("span", "src", `AQI from hourly PM2.5 · ${src === "NOAA" ? "NOAA model" + (bc ? ", bias-corrected" : "") : src === "CAMS" ? "CAMS model" : "NOAA, gaps filled by CAMS"}`));
   host.appendChild(foot);
 }
 
@@ -636,7 +643,8 @@ function chart(host, { series, bands, refs = [], unit, x0, x1, H }) {
       rows.push({ key: s.color, dash: s.dash, label: s.name, value: `${r1(p.v)} ${unit}` }); } else dots[i].setAttribute("opacity", 0); });
     showTip(rc.left + x(tt) * rc.width / W, rc.top + m.t, fDH(new Date(tt)), rows.length ? rows : [{ label: "No data", value: "" }]); };
   const leave = () => { hair.setAttribute("opacity", 0); dots.forEach(d => d.setAttribute("opacity", 0)); hideTip(); };
-  hit.addEventListener("pointermove", move); hit.addEventListener("pointerdown", move); hit.addEventListener("pointerleave", leave);
+  hit.addEventListener("pointermove", move); hit.addEventListener("pointerdown", move);
+  hit.addEventListener("pointerleave", e => { if (e.pointerType === "mouse") leave(); });
 }
 function renderTrend() {
   if (!D) return;
@@ -645,7 +653,7 @@ function renderTrend() {
   const obs = (k) => st && s.push({ name: "Measured", color: "var(--s-obs)", points: pts(st.series, k) });
   if (METRIC === "pm") { obs("pm25");
     if (n.pm25) s.push({ name: "NOAA forecast", color: "var(--s-1)", area: true, points: pts(n.pm25.series, "v") });
-    if (cams.length) s.push({ name: "CAMS model", color: "var(--s-2)", dash: true, w: 1.5, points: pts(cams, "pm25") });
+    if (cams.length) s.push({ name: camsPM() === "pm25_adj" ? "CAMS, calibrated" : "CAMS model", color: "var(--s-2)", dash: true, w: 1.5, points: pts(cams, camsPM()) });
     cfg = { bands: CATS, unit: "µg/m³" }; note = "Models tend to under-predict deep inversions. Use DAQ's forecast for whether it's a bad day, and these lines for when.";
   } else if (METRIC === "o3") { obs("o3");
     if (n.o3) s.push({ name: "NOAA forecast", color: "var(--s-1)", area: true, points: pts(n.o3.series, "v") });
@@ -680,7 +688,10 @@ function renderStations() {
 
 function renderStatus() {
   const host = $("status"); host.textContent = ""; const e = D.errors || [];
+  const stale = [["met", "Mixing height"], ["cams", "CAMS"]].filter(([k]) => D[k] && D[k].stale_from).map(([, n]) => n)
+    .concat(["pm25", "o3", "smoke"].filter(k => D.noaa && D.noaa[k] && D.noaa[k].stale_from).map(k => "NOAA " + k));
   if (!e.length) { host.textContent = "Utah DAQ · NOAA · CAMS · all sources OK"; return; }
+  if (stale.length) e.unshift({ source: "Using previous update for", error: stale.join(", ") });
   const d = el("details"); d.appendChild(el("summary", "", `${e.length} source${e.length > 1 ? "s" : ""} unavailable ›`));
   const b = el("div"); e.forEach(x => b.appendChild(el("div", "", `${x.source}: ${x.error}`))); d.appendChild(b); host.appendChild(d);
 }
@@ -703,8 +714,8 @@ document.querySelectorAll(".seg button").forEach(b => b.addEventListener("click"
 $("reload").addEventListener("click", load);
 let rz, lastW = innerWidth;
 addEventListener("resize", () => { clearTimeout(rz); rz = setTimeout(() => { if (D && innerWidth !== lastW) { lastW = innerWidth; renderAll(); } }, 150); });
-addEventListener("scroll", hideTip, { passive: true });
-document.addEventListener("pointerdown", e => { if (!e.target.closest(".hr, .chart")) hideTip(); });
+addEventListener("scroll", () => { hideTip(); document.querySelectorAll(".hr.sel").forEach(x => x.classList.remove("sel")); }, { passive: true });
+document.addEventListener("pointerdown", e => { if (!e.target.closest(".hr, .chart")) { hideTip(); document.querySelectorAll(".hr.sel").forEach(x => x.classList.remove("sel")); } });
 document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && D && Date.now() - new Date(D.generated_at) > 45 * 6e4) load(); });
 setInterval(() => { if (D) $("updated").textContent = `${ago(new Date(D.generated_at))}`; }, 6e4);
 load();
