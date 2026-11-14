@@ -92,7 +92,8 @@ h1, h2, h3, p { margin: 0; }
 .scale .mark { position: absolute; top: 0; width: 4px; height: 22px; margin-left: -2px; border-radius: 2px; background: var(--fg); }
 .scale-l { font-size: 11px; color: var(--fg-2); }
 .insight { margin-top: 8px; font-size: 20px; line-height: 1.4; letter-spacing: -.01em; color: var(--fg-15); }
-.insight b { font-weight: 600; color: var(--fg); white-space: nowrap; }
+.insight b { font-weight: 600; color: var(--fg); }
+.hero .note { margin: -2px 0 0; font-size: 14px; line-height: 1.5; color: var(--fg-2); }
 .stats { display: grid; grid-template-columns: repeat(5, minmax(0,1fr)); gap: 8px; padding-top: 16px; border-top: 1px solid var(--line); }
 .stat .k { font-size: 12px; color: var(--fg-2); }
 .stat .v { font-size: 16px; font-weight: 500; margin-top: 2px; white-space: nowrap; }
@@ -266,7 +267,8 @@ dialog.sheet[open] { animation: up .22s ease-out; } @keyframes up { from { trans
         <p><b>AQI.</b> The big number is the US AQI for fine particles (PM2.5), using EPA's current breakpoints, where 0 to 9 µg/m³ is Good. It uses EPA's NowCast: a weighted average of the last 12 hours that leans on the most recent ones when levels are changing fast.</p>
         <p><b>Hourly forecast.</b> The next 24 hours use NOAA's hourly PM2.5 wherever it has a value, with the calibrated CAMS model filling gaps. Each hour is converted to AQI the same way.</p>
         <p><b>CAMS calibration.</b> CAMS is a coarse global model and often misreads the valley. Its PM2.5 is scaled by how it compared with the home monitor over the last 24 hours<span id="cal"></span>.</p>
-        <p><b>Inversion and trapped air.</b> An inversion is a lid of warm air that traps cold air and pollution in the valley. Utah measures how well the valley can flush that out with the Clearing Index: mixing depth in hundreds of feet, multiplied by the wind through that layer in knots. NWS and Utah DAQ treat under 500 as poor ventilation, 500 to 1,000 as moderate and 1,000 or more as excellent. Open burning is restricted below 500 under Utah rule R307-202, which also uses 250 as its lowest winter cut-off. This page shows an inversion as likely under 250, possible from 250 to 500, and none at 500 or more.</p>
+        <p><b>Inversion and trapped air.</b> An inversion is a lid of warm air that traps cold air and pollution in the valley. Utah measures how well the valley can flush that out with the Clearing Index: mixing depth in hundreds of feet, multiplied by the wind through that layer in knots. NWS and Utah DAQ treat under 500 as poor ventilation, 500 to 1,000 as moderate and 1,000 or more as excellent. Open burning is restricted below 500 under Utah rule R307-202, which also uses 250 as its lowest winter cut-off.</p>
+        <p><b>Two separate signals.</b> The AQI says what is in the air now. The Clearing Index says how fast new pollution can build. After a storm the air is usually clean even when high pressure has already dropped the Clearing Index, and it typically takes a few days of traffic and heating for pollution to build back up. So a low index over clean air only gets a quiet note. The Inversion tile reads <b>not yet</b> while the air is clean, <b>building</b> when the index is under 500 and the air is still good but more than 3 AQI points above its 24-hour average, <b>active</b> once the air is moderate or worse, <b>lifting</b> when the index is 500 or more and the air is unhealthy or improving from moderate, and <b>none</b> otherwise.</p>
         <p><b>Official versus estimated.</b> The Inversion tile shows the official NWS afternoon value when it is available. The hourly strip and the Inversion chart are this page's own estimate from model mixing height and wind about 80 m above ground, so they will not match NWS exactly.</p>
         <p><b>Best time outside.</b> The two-hour window with the lowest forecast PM2.5 that starts between 6 AM and 8 PM.</p>
         <p><b>Smoke and ozone levels.</b> Smoke is Light from 2 µg/m³, Moderate from 10 and Heavy from 35. Ozone is Moderate from 55 ppb, High from 71 and Very high from 86.</p>
@@ -337,7 +339,40 @@ const when = d => { const now = new Date(); const tm = new Date(now); tm.setDate
    NWS/Utah DAQ: under 500 poor, 500-1000 moderate, 1000+ excellent. R307-202 also uses 250. */
 const ciOf = m => { if (!m || m.blh_m == null) return null; const w = m.wind80_mph ?? m.wind_mph; return w == null ? null : m.blh_m * 3.28084 / 100 * w * 0.868976; };
 // [inversion word, level 1-4, rule rating]
-const ciCat = ci => ci < 250 ? ["Likely", 4, "very poor"] : ci < 500 ? ["Possible", 3, "poor"] : ci < 1000 ? ["None", 2, "moderate"] : ["None", 1, "excellent"];
+const ciCat = ci => ci < 250 ? ["Likely", 4, "very poor"] : ci < 500 ? ["Likely", 3, "poor"] : ci < 1000 ? ["None", 2, "moderate"] : ["None", 1, "excellent"];
+/* Two separate signals: AQI = what is in the air now; Clearing Index = how fast new pollution builds. */
+function ciToday() {
+  const now = Date.now(), today = new Date().toLocaleDateString("en-CA");
+  const cd = ((D.clearing && D.clearing.days) || []).filter(d => d.date >= today && d.index != null)[0];
+  if (cd) return { ci: cd.index, plus: cd.plus, official: true, when: cd.date === today ? "" : " " + cd.label.toLowerCase() };
+  const hrs = ((D.met && D.met.series) || []).map(r => ({ t: new Date(r.t).getTime(), ci: ciOf(r) })).filter(p => p.ci != null && p.t >= now - HOUR && p.t <= now + 24 * HOUR);
+  if (!hrs.length) return null;
+  const day = hrs.filter(p => { const h = new Date(p.t).getHours(); return h >= 12 && h <= 17; });
+  return { ci: Math.max(...(day.length ? day : hrs).map(p => p.ci)), official: false, when: "" };
+}
+function smokePeak() {
+  const now = Date.now(), sm = ((D.noaa && D.noaa.smoke && D.noaa.smoke.series) || []).map(r => ({ t: new Date(r.t).getTime(), v: r.v })).filter(p => p.v != null && p.t >= now && p.t <= now + 24 * HOUR);
+  return sm.length ? Math.max(...sm.map(p => p.v)) : null;
+}
+// Inversion tile word, its level (1-4), an optional quiet note under the headline, and an optional
+// headline sentence [before, bold, after]. A low Clearing Index over clean air is not an air quality
+// problem yet: pollution takes days to build, so we only warn once it is actually building.
+function airState(aqi, c, smoke, trend) {
+  const rising = trend > 3, falling = trend < -3; // AQI points vs the 24h average; the buffer stops morning flicker
+  if (aqi == null || !c) return null;
+  if (c.ci < 500) {
+    if (aqi <= 50 && !(aqi >= 35 && rising)) return { word: "Not yet", lvl: 1, note: "Calm winds ahead, so the air may gradually turn hazy over the next 2–3 days." };
+    if (aqi <= 50) return { word: "Building", lvl: 2, note: "Stagnant air is trapping local emissions, so air quality is trending toward moderate." };
+    if (aqi <= 100) return { word: "Active", lvl: 3, say: ["An ", "inversion is trapping pollution", " in the valley."] };
+    return { word: "Active", lvl: 4, say: ["An ", "inversion is trapping pollution", " near the valley floor. Limit hard exercise outside; higher elevations are often above it."] };
+  }
+  if (aqi > 50 && aqi <= 100 && falling) return { word: "Lifting", lvl: 2, say: ["The inversion is ", "lifting", " and the air is improving."] };
+  if (aqi > 100) return smoke != null && smoke >= 2
+    ? { word: "None", lvl: 1, say: ["The air is mixing well, so this is likely ", "smoke moving through", "."] }
+    : { word: "Lifting", lvl: 2, say: ["Wind or a storm is ", "breaking up the inversion", ", so this should improve."] };
+  return { word: "None", lvl: 1 };
+}
+let STATE = null;
 const ciFmt = ci => ci >= 1000 ? "1000+" : String(Math.round(ci / 10) * 10);
 // strip darkness: continuous, anchored to the rule (1000+ = clear), so winter afternoons still differ from nights
 const mixOp = ci => ci == null ? .06 : ci >= 1000 ? .1 : .9 - .8 * Math.sqrt(ci / 1000);
@@ -398,7 +433,7 @@ function bestWorst(hours) {
   return { best: w.reduce((a, b) => b.v < a.v ? b : a), worst: w.reduce((a, b) => b.v > a.v ? b : a) };
 }
 const spanP = t => { const a = new Date(t), b = new Date(t + 2 * HOUR), ap = d => d.getHours() < 12 ? "AM" : "PM", h = d => d.getHours() % 12 || 12;
-  return ap(a) === ap(b) ? `${h(a)}–${h(b)} ${ap(b)}` : `${h(a)} ${ap(a)}–${h(b)} ${ap(b)}`; };
+  return ap(a) === ap(b) ? `${h(a)}\u2060–\u2060${h(b)} ${ap(b)}` : `${h(a)} ${ap(a)}\u2060–\u2060${h(b)} ${ap(b)}`; };
 
 /* ============================================================ hero */
 function insightText(cat, hours) {
@@ -409,6 +444,7 @@ function insightText(cat, hours) {
     const nc = pmCat(change.v), better = nc.i < cat.i;
     parts.push([`${better ? "Easing" : "Rising"} to `, nc.short.toLowerCase(), ` ${when(new Date(change.t)) === "overnight" ? "overnight" : "around " + when(new Date(change.t))}.`]);
   } else if (fut.length) parts.push(["Holding ", cat.short.toLowerCase(), " through the next 24 hours."]);
+  if (STATE && STATE.say) parts.push(STATE.say);
   const { best } = bestWorst(hours);
   if (best && fut.length) parts.push(["Best time outside is ", spanP(best.t), "."]);
   return parts;
@@ -420,10 +456,11 @@ function renderHero() {
   if (!st) { host.appendChild(el("div", "empty", "Monitor data unavailable right now.")); return; }
   const ser = st.series, rev = [...ser].reverse(), last = rev.find(r => r.pm25 != null) || rev[0];
   const nc = nowcast(ser.map(r => r.pm25)), aqi = pmAqi(nc ?? last.pm25), cat = aqiCat(aqi ?? 0), idx = cat.i - 1;
+  STATE = airState(aqi, ciToday(), smokePeak(), last.pm25_24h != null && aqi != null ? aqi - pmAqi(last.pm25_24h) : 0);
   document.documentElement.dataset.q = cat.i;
 
   host.appendChild(el("div", "h-sub", `${st.name} monitor · ${fHL(new Date(last.t))}`));
-  const hc = el("div", "h-cat"), h1 = el("h1", cat.name.length > 20 ? "sm" : cat.name.length > 9 ? "md" : "", cat.name);
+  const hc = el("div", "h-cat"), h1 = el("h1", cat.name.length > 20 ? "sm" : cat.name.length > 7 ? "md" : "", cat.name);
   hc.append(dot(qv(cat.i)), h1); host.appendChild(hc);
 
   const a = el("div", "aqi"), l = el("div"), r = el("div", "r");
@@ -441,6 +478,7 @@ function renderHero() {
   const ins = el("p", "insight");
   for (const [x, b, c] of insightText(cat, next24())) { ins.append(x); ins.appendChild(el("b", "", b)); ins.append(c + " "); }
   host.appendChild(ins);
+  if (STATE && STATE.note) host.appendChild(el("p", "note", STATE.note));
 
   const o3 = rev.find(x => x.o3 != null);
   const stat = (k, val) => { const s = el("div", "stat"); s.append(el("div", "k", k), el("div", "v", val)); stats.appendChild(s); };
@@ -487,13 +525,10 @@ function renderConds() {
     if (lvl) { const p = el("div", "pips"); p.setAttribute("role", "img"); p.setAttribute("aria-label", `${k} level ${lvl} of 4`); p.style.setProperty("--c", qv(lvl));
       for (let i = 0; i < 4; i++) p.appendChild(el("i", i < lvl ? "on" : "")); d.appendChild(p); }
     d.appendChild(el("div", "small", s)); host.appendChild(d); };
-  // inversion, rated by the Clearing Index: official NWS Clearing Index when we have it, else our own estimate
-  const today = new Date().toLocaleDateString("en-CA"), cd = ((D.clearing && D.clearing.days) || []).filter(d => d.date >= today && d.index != null)[0];
-  const hrs = ((D.met && D.met.series) || []).map(r => ({ t: new Date(r.t).getTime(), ci: ciOf(r) })).filter(p => p.ci != null && p.t >= now - HOUR && p.t <= now + 24 * HOUR);
-  if (cd) { const [v, lvl, rate] = ciCat(cd.index);
-    add("layers", "Inversion", v, `Clearing Index ${cd.plus ? "1000+" : cd.index} (${rate})${cd.date === today ? "" : " " + cd.label.toLowerCase()}`, lvl);
-  } else if (hrs.length) { const day = hrs.filter(p => { const h = new Date(p.t).getHours(); return h >= 12 && h <= 17; }), peak = Math.max(...(day.length ? day : hrs).map(p => p.ci)), [v, lvl, rate] = ciCat(peak);
-    add("layers", "Inversion", v, `Clearing Index about ${ciFmt(peak)} (${rate})`, lvl);
+  // inversion: the Clearing Index read together with current AQI
+  const c = ciToday();
+  if (c) { const rate = ciCat(c.ci)[2], num = c.plus || c.ci >= 1000 ? "1000+" : c.official ? c.ci : "about " + ciFmt(c.ci);
+    add("layers", "Inversion", STATE ? STATE.word : ciCat(c.ci)[0], `Clearing Index ${num} (${rate})${c.when}`, STATE ? STATE.lvl : ciCat(c.ci)[1]);
   } else add("layers", "Inversion", "—", "No data");
   // smoke
   const sm = ((D.noaa && D.noaa.smoke && D.noaa.smoke.series) || []).map(r => ({ t: new Date(r.t).getTime(), v: r.v })).filter(p => p.v != null && p.t >= now && p.t <= now + 24 * HOUR);
