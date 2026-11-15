@@ -170,7 +170,8 @@ dialog.sheet[open] { animation: up .22s ease-out; } @keyframes up { from { trans
 .sheet h3 { font-size: 13px; font-weight: 500; color: var(--fg-2); margin-bottom: 8px; }
 .src { display: flex; flex-direction: column; }
 .src > div { padding: 12px 0; border-top: 1px solid var(--line); }
-.src .t { font-size: 14px; font-weight: 500; }
+.src .t { display: inline-block; font-size: 14px; font-weight: 500; }
+a.t { color: var(--fg); }
 .src .d { font-size: 13px; color: var(--fg-2); margin-top: 2px; }
 .how { display: flex; flex-direction: column; gap: 12px; font-size: 14px; line-height: 1.55; color: var(--fg-15); }
 .how b { font-weight: 600; color: var(--fg); }
@@ -234,7 +235,7 @@ dialog.sheet[open] { animation: up .22s ease-out; } @keyframes up { from { trans
       <div class="stats" id="stats"></div>
 
       <section class="sec a-mon">
-        <div class="head"><h2>Valley monitors</h2><div class="meta">PM2.5 · 24h avg, µg/m³</div></div>
+        <div class="head"><div class="l"><h2>Valley monitors</h2><button class="info" id="imon" type="button" aria-label="How to read the monitors"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" aria-hidden="true"><circle cx="8" cy="8" r="6.2"/><path d="M8 7.4v3.4"/><circle cx="8" cy="5.1" r=".5" fill="currentColor"/></svg></button></div><div class="meta">PM2.5 · 24h avg, µg/m³</div></div>
         <div id="stations"></div>
       </section>
     </div>
@@ -245,11 +246,11 @@ dialog.sheet[open] { animation: up .22s ease-out; } @keyframes up { from { trans
       </section>
       <div class="pair">
         <section class="sec a-conds">
-          <div class="head"><h2>Conditions</h2><div class="meta">Next 24 hours</div></div>
+          <div class="head"><div class="l"><h2>Conditions</h2><button class="info" id="icond" type="button" aria-label="How to read conditions"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" aria-hidden="true"><circle cx="8" cy="8" r="6.2"/><path d="M8 7.4v3.4"/><circle cx="8" cy="5.1" r=".5" fill="currentColor"/></svg></button></div><div class="meta">Next 24 hours</div></div>
           <div class="tiles" id="conds"></div>
         </section>
         <section class="sec a-days">
-          <div class="head"><h2>Official forecast</h2><div class="meta">Utah DAQ</div></div>
+          <div class="head"><div class="l"><h2>Official forecast</h2><button class="info" id="idaq" type="button" aria-label="How to read the official forecast"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" aria-hidden="true"><circle cx="8" cy="8" r="6.2"/><path d="M8 7.4v3.4"/><circle cx="8" cy="5.1" r=".5" fill="currentColor"/></svg></button></div><div class="meta">Utah DAQ</div></div>
           <div class="tiles" id="days"></div>
         </section>
       </div>
@@ -299,19 +300,29 @@ dialog.sheet[open] { animation: up .22s ease-out; } @keyframes up { from { trans
         <p><b>CAMS calibration.</b> CAMS is a coarse global model and often misreads the valley. Its PM2.5 is scaled by how it compared with the home monitor over the last 24 hours<span id="cal"></span>.</p>
         <p><b>Inversion and trapped air.</b> An inversion is a lid of warm air that traps cold air and pollution in the valley. Utah measures how well the valley can flush that out with the Clearing Index: mixing depth in hundreds of feet, multiplied by the wind through that layer in knots. NWS and Utah DAQ treat under 500 as poor ventilation, 500 to 1,000 as moderate and 1,000 or more as excellent. Open burning is restricted below 500 under Utah rule R307-202, which also uses 250 as its lowest winter cut-off.</p>
         <p><b>Two separate signals.</b> The AQI says what is in the air now. The Clearing Index says how fast new pollution can build. After a storm the air is usually clean even when high pressure has already dropped the Clearing Index, and it typically takes a few days of traffic and heating for pollution to build back up. So a low index over clean air only gets a quiet note. The Inversion tile reads <b>not yet</b> while the air is clean, <b>building</b> when the index is under 500 and the air is still good but more than 3 AQI points above its 24-hour average, <b>active</b> once the air is moderate or worse, <b>lifting</b> when the index is 500 or more and the air is unhealthy or improving from moderate, and <b>none</b> otherwise.</p>
-        <p><b>Official versus estimated.</b> The Inversion tile shows the official NWS afternoon value when it is available. The hourly strip and the Inversion chart are this page's own estimate from model mixing height and wind about 80 m above ground, so they will not match NWS exactly.</p>
+        <p><b>Official versus estimated.</b> The Inversion tile and the solid steps on the Inversion chart are the official NWS daily values. The hourly strip and the dashed line are this page's own estimate from model mixing height and wind about 80 m up. That wind is weaker than the NWS transport wind, so each day is scaled to match the official afternoon value: the model gives the shape through the day, NWS sets the level.</p>
         <p><b>Best time outside.</b> The two-hour window with the lowest forecast PM2.5 that starts between 6 AM and 8 PM.</p>
         <p><b>Smoke and ozone levels.</b> Smoke is Light from 2 µg/m³, Moderate from 10 and Heavy from 35. Ozone is Moderate from 55 ppb, High from 71 and Very high from 86.</p>
         <p><b>Updates.</b> Data refreshes once an hour. If a source fails, the last good copy is kept while it still covers the hours ahead, and the failure is listed under Status.</p>
         <p><b>A caution.</b> Models tend to under-predict deep inversions. Trust Utah DAQ for whether it's a bad day, and the hourly lines for when.</p>
       </div>
     </div>
+    <div>
+      <h3>Learn more from official sources</h3>
+      <div class="src">
+        <div><a class="t" href="https://www.airnow.gov/aqi/aqi-basics/">AQI basics</a><div class="d">EPA AirNow: what the numbers and colors mean.</div></div>
+        <div><a class="t" href="https://www.epa.gov/system/files/documents/2024-02/pm-naaqs-air-quality-index-fact-sheet.pdf">2024 update to the PM2.5 AQI</a><div class="d">EPA fact sheet: why Good now ends at 9.0 µg/m³.</div></div>
+        <div><a class="t" href="https://deq.utah.gov/air-quality/inversions">Inversions</a><div class="d">Utah DEQ: how the valley traps pollution in winter.</div></div>
+        <div><a class="t" href="https://air.utah.gov/forecastLegend.html">Forecast and action levels</a><div class="d">Utah DAQ: what Unrestricted, Voluntary and Mandatory mean.</div></div>
+        <div><a class="t" href="https://www.weather.gov/slc/clearingindex">Clearing Index</a><div class="d">NWS Salt Lake City: the formula and daily forecast by airshed.</div></div>
+        <div><a class="t" href="https://smokemgt.utah.gov/static/pdf/Airsheds_NAAclass1.pdf">Utah airshed map</a><div class="d">Which numbered airshed you're in; the Salt Lake Valley is 8.</div></div>
+        <div><a class="t" href="https://deq.utah.gov/air-quality/regulations-for-residential-open-burning-stationary-source-compliance">Open burning rules</a><div class="d">Utah DEQ: the 500 and 250 Clearing Index thresholds (rule R307-202).</div></div>
+      </div>
+    </div>
     <div class="links">
-      <a href="https://air.utah.gov/forecast.php?id=slc">Utah DAQ</a>
+      <a href="https://air.utah.gov/forecast.php?id=slc">Utah DAQ forecast</a>
       <a href="https://airquality.weather.gov/">NOAA forecast</a>
-      <a href="https://www.weather.gov/slc/ClearingIndex">NWS Clearing Index</a>
-      <a href="https://deq.utah.gov/air-quality/regulations-for-residential-open-burning-stationary-source-compliance">Utah burning rules</a>
-      <a href="https://fire.airnow.gov/">Smoke map</a>
+      <a href="https://fire.airnow.gov/">Fire and smoke map</a>
       <a href="https://www.saltlakecounty.gov/health/air-quality/airview/">Neighborhood sensors</a>
       <a href="https://github.com/frew425/salt-lake-air">Code on GitHub</a>
     </div>
@@ -367,7 +378,22 @@ const when = d => { const now = new Date(); const tm = new Date(now); tm.setDate
   return sameDay(d, now) ? fHL(d) : sameDay(d, tm) && d.getHours() < 5 ? "overnight" : sameDay(d, tm) ? fHL(d) + " tomorrow" : fDH(d); };
 /* Clearing Index: mixing depth (hundreds of feet) x wind through that layer (knots).
    NWS/Utah DAQ: under 500 poor, 500-1000 moderate, 1000+ excellent. R307-202 also uses 250. */
-const ciOf = m => { if (!m || m.blh_m == null) return null; const w = m.wind80_mph ?? m.wind_mph; return w == null ? null : m.blh_m * 3.28084 / 100 * w * 0.868976; };
+const ciRaw = m => { if (!m || m.blh_m == null) return null; const w = m.wind80_mph ?? m.wind_mph; return w == null ? null : m.blh_m * 3.28084 / 100 * w * 0.868976; };
+/* The model's near-surface wind is weaker than the NWS transport wind (the average through the whole mixed
+   layer), so the raw estimate runs low. Scale each day so its afternoon peak matches the official NWS value;
+   the model supplies the hour-to-hour shape, NWS supplies the level. Same idea as the CAMS calibration. */
+let CAL = new Map(), CAL_DEFAULT = null;
+function buildCal() {
+  CAL = new Map(); CAL_DEFAULT = null;
+  const met = (D.met && D.met.series) || [];
+  for (const d of ((D.clearing && D.clearing.days) || []).filter(d => d.index != null)) {
+    const pk = Math.max(0, ...met.filter(r => r.t.slice(0, 10) === d.date && +r.t.slice(11, 13) >= 12 && +r.t.slice(11, 13) <= 17).map(r => ciRaw(r) ?? 0));
+    if (pk > 0) CAL.set(d.date, Math.min(10, Math.max(0.5, d.index / pk)));
+  }
+  const fs = [...CAL.values()].sort((a, b) => a - b);
+  if (fs.length) CAL_DEFAULT = fs[Math.floor((fs.length - 1) / 2)]; // median, for hours on days without an official value
+}
+const ciOf = m => { const raw = ciRaw(m); if (raw == null) return null; const f = (m.t && CAL.get(m.t.slice(0, 10))) ?? CAL_DEFAULT ?? 1; return raw * f; };
 // [inversion word, level 1-4, rule rating]
 const ciCat = ci => ci < 250 ? ["Likely", 4, "very poor"] : ci < 500 ? ["Likely", 3, "poor"] : ci < 1000 ? ["None", 2, "moderate"] : ["None", 1, "excellent"];
 /* Two separate signals: AQI = what is in the air now; Clearing Index = how fast new pollution builds. */
@@ -494,7 +520,7 @@ function renderHero() {
   hc.append(dot(qv(cat.i)), h1); host.appendChild(hc);
 
   const a = el("div", "aqi"), l = el("div"), r = el("div", "r");
-  const lbl = el("div", "lbl", "US AQI"); lbl.appendChild(infoBtn("About this number", "The US AQI for fine particles (PM2.5), the pollutant that builds up under winter inversions. It uses EPA's NowCast, which leans on the most recent hours."));
+  const lbl = el("div", "lbl", "US AQI"); lbl.appendChild(infoBtn("About this number", "The US AQI turns fine-particle pollution (PM2.5) into a 0–500 scale. Under EPA's 2024 update, 0–50 (Good) means 9.0 µg/m³ or less. This is EPA's NowCast: a weighted average of the last 12 hours that leans on the most recent ones."));
   l.append(el("div", "num", aqi ?? "—"), lbl);
   const of = el("div", "of"); of.append("of 500 · "); of.appendChild(el("b", "", `${cat.lo}–${cat.hi} is ${cat.short.toLowerCase()}`));
   const sc = el("div", "scale"); sc.setAttribute("role", "img"); sc.setAttribute("aria-label", `AQI scale from 0 to 500 in six bands. The current value, ${aqi}, is in the ${cat.name} band.`);
@@ -606,7 +632,7 @@ function render24() {
   if (best) { const u = el("i"); u.style.gridColumn = `${best.i + 1} / span 2`; under.appendChild(u); }
   mix.setAttribute("aria-hidden", "true"); under.setAttribute("aria-hidden", "true");
   const foot = el("div", "foot small"), sw = el("span", "sw"); sw.append(el("i"), "Trapped air"); foot.appendChild(sw);
-  $("i24").dataset.info = `Bars are AQI from the hourly PM2.5 forecast (${src === "NOAA" ? "NOAA" + (bc ? ", bias-corrected" : "") : src === "CAMS" ? "CAMS" : "NOAA, gaps filled by CAMS"}). The strip underneath is trapped air: darker means a stronger inversion. Tap a bar for details.`;
+  $("i24").dataset.info = `Bars are AQI from the hourly PM2.5 forecast (${src === "NOAA" ? "NOAA" + (bc ? ", bias-corrected" : "") : src === "CAMS" ? "CAMS" : "NOAA, gaps filled by CAMS"}). Taller is worse; color is the AQI category. The darker pair is the best 2-hour window between 6 AM and 8 PM. The strip underneath is trapped air: darker means less mixing. Tap a bar for details.`;
   host.append(grid, under, mix, axis, foot);
 }
 
@@ -670,15 +696,26 @@ function renderTrend() {
     if (cams.length) s.push({ name: camsPM() === "pm25_adj" ? "CAMS, calibrated" : "CAMS model", color: "var(--s-2)", dash: true, w: 1.5, points: pts(cams, camsPM()) });
     if (n.pm25) s.push({ name: "NOAA forecast", color: "var(--s-1)", points: pts(n.pm25.series, "v") });
     obs("pm25");
-    cfg = { bands: CATS, unit: "µg/m³", strip: met }; note = "Measured PM2.5 against two forecast models. The bottom strip is trapped air. Models tend to under-predict deep inversions, so use DAQ for whether it's a bad day and these lines for when.";
+    cfg = { bands: CATS, unit: "µg/m³", strip: met }; note = "Black is what the monitor measured; blue and dashed orange are two forecast models. Shaded bands are AQI categories, and the bottom strip is trapped air. Models tend to under-predict deep inversions, so use DAQ for whether it's a bad day and these lines for when.";
   } else if (METRIC === "o3") {
     if (cams.length) s.push({ name: "CAMS model", color: "var(--s-2)", dash: true, w: 1.5, points: pts(cams, "o3") });
     if (n.o3) s.push({ name: "NOAA forecast", color: "var(--s-1)", points: pts(n.o3.series, "v") });
     obs("o3");
-    cfg = { refs: [{ v: 70, label: "70 ppb · sensitive groups" }], unit: "ppb" }; note = "Ozone peaks on sunny summer afternoons. In winter, PM2.5 matters more.";
-  } else { s.push({ name: "Clearing Index, estimated", color: "var(--s-1)", points: met.map(r => { const ci = ciOf(r); return { t: new Date(r.t).getTime(), v: ci == null ? null : Math.min(ci, 1100) }; }) });
-    cfg = { refs: [{ v: 500, label: "500 · inversion below" }, { v: 1000, label: "1,000 · clear above" }], unit: "index" };
-    note = "Inversions are rated with Utah's Clearing Index: mixing depth times wind. Under 500 the valley is capped and pollution builds; 1,000 or more clears it out. This hourly line is an estimate; the official NWS daily value is in Conditions."; }
+    cfg = { refs: [{ v: 70, label: "70 ppb · sensitive groups" }], unit: "ppb" }; note = "Measured ozone against two forecast models. The dashed line at 70 ppb is where EPA's AQI turns orange (unhealthy for sensitive groups). Ozone peaks on sunny summer afternoons; in winter, PM2.5 matters more.";
+  } else {
+    // with official values, only draw the estimate on days NWS has rated, so every dashed point is calibrated
+    const est = met.filter(r => !CAL.size || CAL.has(r.t.slice(0, 10))).map(r => { const ci = ciOf(r); return { t: new Date(r.t).getTime(), v: ci == null ? null : Math.min(ci, 1100) }; });
+    const off = [];
+    for (const d of ((D.clearing && D.clearing.days) || []).filter(d => d.index != null)) {
+      const [y, mo, da] = d.date.split("-").map(Number), t0 = new Date(y, mo - 1, da).getTime();
+      for (let h = 0; h < 24; h++) off.push({ t: t0 + h * HOUR, v: Math.min(d.index, 1100) });
+      off.push({ t: t0 + 24 * HOUR - 1, v: Math.min(d.index, 1100) });
+    }
+    s.push({ name: off.length ? "Hourly estimate" : "Clearing Index, estimated", color: "var(--s-1)", dash: !!off.length, w: off.length ? 1.5 : 2, points: est });
+    if (off.length) s.push({ name: "NWS official", color: "var(--s-obs)", w: 2.5, points: off });
+    const top = Math.max(0, ...est.concat(off).filter(p => p.t >= now - 24 * HOUR && p.t <= now + 60 * HOUR && p.v != null).map(p => p.v));
+    cfg = { refs: [{ v: 500, label: "500 · inversion below" }].concat(top > 850 ? [{ v: 1000, label: "1,000 · clear above" }] : []), unit: "index" };
+    note = "Solid steps are the National Weather Service's official daily Clearing Index for this area: mixing depth (hundreds of feet) times the wind through that layer (knots). Under 500 is poor ventilation; 1,000 or more is excellent. The dashed line is an hourly estimate from weather models, scaled to match NWS. It drops every night as cold air settles on the valley floor."; }
   const lg = $("legend"); lg.textContent = "";
   const order = [...s].reverse();
   for (const x of s.length > 1 ? order : []) { const sp = el("span"), k = el("span", "key" + (x.dash ? " dash" : "")); k.style.setProperty("--c", x.color); sp.append(k, x.name); lg.appendChild(sp); }
@@ -718,6 +755,7 @@ function renderStatus() {
   $("shed").textContent = D.clearing && D.clearing.airshed ? ` (airshed ${D.clearing.airshed})` : "";
   $("cal").textContent = cal ? ` (currently ×${cal.factor}, from ${cal.hours} hours at ${cal.station})` : "";
 }
+for (const [id, t] of Object.entries({"imon": "Each bar is a Utah DAQ monitor's 24-hour average PM2.5. The tick marks 9 µg/m³, the top of EPA's Good range, so a bar past the tick means that spot is above Good. \"Now\" is the latest hourly reading.", "icond": "Inversion reads the National Weather Service Clearing Index together with the air right now. Under 500 is poor ventilation, but over clean air it's only a heads-up: pollution usually takes days to build. Smoke and ozone are forecast peaks for the next 24 hours. The four small bars show how high each one is.", "idaq": "Utah DAQ's daily forecast. The word is the expected air quality; the line under it is the action level for wood and coal burning: Unrestricted, Voluntary (please don't burn) or Mandatory (burning prohibited). Salt Lake County treats Voluntary days as no-burn days too."})) $(id).dataset.info = t;
 const sheet = $("about");
 $("about-btn").addEventListener("click", () => sheet.showModal());
 $("about-x").addEventListener("click", () => sheet.close());
@@ -725,6 +763,7 @@ sheet.addEventListener("click", e => { if (e.target === sheet) sheet.close(); })
 
 function setUpdated() { const gen = new Date(D.generated_at), stale = Date.now() - gen > 2 * HOUR; $("updated").textContent = (stale ? "Delayed · " : "Updated ") + ago(gen); }
 function renderAll() {
+  buildCal();
   $("loc").textContent = D.location.name; setUpdated();
   renderHero(); render24(); renderConds(); renderTrend(); renderDays(); renderStations(); renderStatus();
 }
