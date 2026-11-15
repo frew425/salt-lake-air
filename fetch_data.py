@@ -25,26 +25,42 @@ import sys
 import time
 import urllib.parse
 import urllib.request
+from concurrent.futures import ThreadPoolExecutor
 import xml.etree.ElementTree as ET
 from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 
 # ---------------------------------------------------------------- config ----
-LOCATION_NAME = "Murray / Holladay"
-LAT, LON = 40.655, -111.845
 TZ = ZoneInfo("America/Denver")
 
-# DAQ feed ids (see https://air.utah.gov/airapi.html). First one with data is the "now" station.
+# Monitors people can choose between. All are Utah DAQ regulatory monitors in airshed 8
+# (S. Wasatch Front). "id" is the DAQ feed id (https://air.utah.gov/airapi.html); "zone" is
+# the forecast point used for the model data; "county" picks the DAQ forecast.
+# A monitor is offered in the picker only while its feed is reporting PM2.5.
 STATIONS = [
-    ("slc", "Hawthorne"),
-    ("cv", "Copper View (Midvale)"),
-    ("ut", "Utah Tech Center"),
-    ("nr", "Near Road I-15"),
-    ("rp", "Rose Park"),
-    ("lp", "West Valley"),
+    {"id": "slc", "name": "Hawthorne", "area": "Salt Lake City · Liberty Wells", "county": "slc", "zone": "slc-north", "lat": 40.7344, "lon": -111.8721},
+    {"id": "rp", "name": "Rose Park", "area": "Salt Lake City · northwest", "county": "slc", "zone": "slc-north", "lat": 40.7956, "lon": -111.9310},
+    {"id": "ut", "name": "Utah Tech Center", "area": "Salt Lake City · west side", "county": "slc", "zone": "slc-north", "lat": 40.7771, "lon": -111.9450},
+    {"id": "lp", "name": "West Valley", "area": "West Valley City · Lake Park", "county": "slc", "zone": "slc-west", "lat": 40.7098, "lon": -112.0088},
+    {"id": "nr", "name": "Near Road", "area": "Murray · beside I-15", "county": "slc", "zone": "slc-south", "lat": 40.6620, "lon": -111.9020},
+    {"id": "cv", "name": "Copper View", "area": "Midvale", "county": "slc", "zone": "slc-south", "lat": 40.5981, "lon": -111.8942},
+    {"id": "ln", "name": "Lindon", "area": "Lindon · Utah County", "county": "utah", "zone": "utah-north", "lat": 40.3396, "lon": -111.7135},
+    {"id": "sf", "name": "Spanish Fork", "area": "Spanish Fork · Utah County", "county": "utah", "zone": "utah-south", "lat": 40.1363, "lon": -111.6579},
 ]
-DAQ_FORECAST_RSS = "https://air.utah.gov/rssFeed.php?id=slc"
-DAQ_FORECAST_CSV = "https://air.utah.gov/csvFeed.php?id=forecast"
+# Forecast points. The models are coarse (NOAA about 12 km, CAMS about 40 km), so nearby
+# monitors share one point; this also keeps the hourly run short.
+ZONES = {
+    "slc-north": {"name": "Salt Lake City", "lat": 40.765, "lon": -111.915},
+    "slc-west": {"name": "West Valley", "lat": 40.710, "lon": -112.009},
+    "slc-south": {"name": "Murray and Midvale", "lat": 40.630, "lon": -111.898},
+    "utah-north": {"name": "Lindon and Orem", "lat": 40.340, "lon": -111.714},
+    "utah-south": {"name": "Spanish Fork", "lat": 40.136, "lon": -111.658},
+}
+# Utah DAQ's official forecast is issued per county.
+COUNTIES = {
+    "slc": {"name": "Salt Lake County", "rss": "https://air.utah.gov/rssFeed.php?id=slc"},
+    "utah": {"name": "Utah County", "rss": "https://air.utah.gov/rssFeed.php?id=ln"},
+}
 NOAA_ROOT = "https://mapservices.weather.noaa.gov/raster/rest/services/air_quality"
 
 # NWS Salt Lake City Smoke Management Forecast: the official daily Clearing Index.
@@ -155,18 +171,19 @@ def parse_daq_csv(text, now):
 
 def fetch_stations(now):
     out = []
-    for sid, name in STATIONS:
+    for st in STATIONS:
+        meta = dict(st)
         try:
-            text = get(f"https://air.utah.gov/csvFeed.php?id={sid}")
+            text = get(f"https://air.utah.gov/csvFeed.php?id={st['id']}")
             rows = parse_daq_csv(text, now)
             if not rows:
                 raise ValueError("no rows parsed")
             cutoff = now - timedelta(hours=72)
             rows = [r for r in rows if datetime.fromisoformat(r["t"]) >= cutoff]
-            out.append({"id": sid, "name": name, "series": rows})
+            out.append(dict(meta, series=rows))
         except Exception as e:  # noqa: BLE001
-            record_error(f"DAQ station {name}", e)
-            out.append({"id": sid, "name": name, "series": [], "error": str(e)[:200]})
+            record_error(f"DAQ station {st['name']}", e)
+            out.append(dict(meta, series=[], error=str(e)[:200]))
     return out
 
 
@@ -180,30 +197,24 @@ def strip_html(s):
 
 
 def fetch_daq_forecast():
-    res = {"rss": [], "csv": None}
-    try:
-        root = ET.fromstring(get(DAQ_FORECAST_RSS))
-        for item in root.iter("item"):
-            res["rss"].append({
-                "title": strip_html(item.findtext("title", "")),
-                "description": strip_html(item.findtext("description", "")),
-                "pubDate": item.findtext("pubDate", ""),
-            })
-    except Exception as e:  # noqa: BLE001
-        record_error("DAQ forecast RSS", e)
-    try:
-        text = get(DAQ_FORECAST_CSV)
-        lines = [ln for ln in text.splitlines() if ln.strip()]
-        delim = "\t" if lines and "\t" in lines[0] else ","
-        rows = list(csv.reader(io.StringIO("\n".join(lines)), delimiter=delim))
-        if rows:
-            header = [h.strip() for h in rows[0]]
-            keep = [[c.strip() for c in r] for r in rows[1:]
-                    if any("salt lake" in c.lower() for c in r)]
-            res["csv"] = {"header": header, "rows": keep or [[c.strip() for c in r] for r in rows[1:8]]}
-    except Exception as e:  # noqa: BLE001
-        record_error("DAQ forecast CSV", e)
-    return res
+    """Official forecast per county: {"slc": {"rss": [...]}, "utah": {"rss": [...]}}."""
+    out = {}
+    for key, c in COUNTIES.items():
+        res = {"name": c["name"], "rss": []}
+        try:
+            root = ET.fromstring(get(c["rss"]))
+            for item in root.iter("item"):
+                res["rss"].append({
+                    "title": strip_html(item.findtext("title", "")),
+                    "description": strip_html(item.findtext("description", "")),
+                    "pubDate": item.findtext("pubDate", ""),
+                })
+            if not res["rss"]:
+                raise ValueError("no forecast items")
+        except Exception as e:  # noqa: BLE001
+            record_error(f"DAQ forecast ({c['name']})", e)
+        out[key] = res
+    return out
 
 
 # ------------------------------------------------------------------- NOAA ----
@@ -231,14 +242,14 @@ def _noaa_window(base, common, t0, t1, variant, depth=0):
     return samples
 
 
-def noaa_point_series(service, now):
-    """Hourly values at LAT/LON from a time-enabled NDGD ImageServer.
+def noaa_point_series(service, now, lat, lon):
+    """Hourly values at one point from a time-enabled NDGD ImageServer.
 
     The service caps each response at ~20 samples, so we walk the forecast in
     small time windows and, for every valid hour, keep the newest model run.
     """
     base = f"{NOAA_ROOT}/{service}/ImageServer/getSamples"
-    geom = json.dumps({"x": LON, "y": LAT, "spatialReference": {"wkid": 4326}})
+    geom = json.dumps({"x": lon, "y": lat, "spatialReference": {"wkid": 4326}})
     common = {
         "geometry": geom,
         "geometryType": "esriGeometryPoint",
@@ -285,52 +296,71 @@ def noaa_point_series(service, now):
             "samples": len(samples), "series": series}
 
 
-def fetch_noaa(now):
-    res = {}
-    try:
-        names = noaa_services()
-    except Exception as e:  # noqa: BLE001
-        record_error("NOAA service list", e)
-        names = []
-    wanted = {
-        # bias-corrected hourly PM2.5 first, raw model second
-        "pm25": [r"apm25_hr01_bc", r"pm25.*1hr.*bc", r"apm25_hr01$", r"pm25.*1hr"],
-        "o3": [r"ozone_1hr.*bc", r"ozone.*1hr", r"o3.*hr01"],
-        "smoke": [r"smoke_sfc_1hr"],
-    }
-    fallbacks = {
-        "pm25": ["ndgd_apm25_hr01_bc", "ndgd_apm25_hr01"],
-        "o3": ["ndgd_ozone_1hr_avg_time"],
-        "smoke": ["ndgd_smoke_sfc_1hr_avg_time"],
-    }
-    for key, pats in wanted.items():
+NOAA_WANTED = {
+    # bias-corrected hourly PM2.5 first, raw model second
+    "pm25": [r"apm25_hr01_bc", r"pm25.*1hr.*bc", r"apm25_hr01$", r"pm25.*1hr"],
+    "o3": [r"ozone_1hr.*bc", r"ozone.*1hr", r"o3.*hr01"],
+    "smoke": [r"smoke_sfc_1hr"],
+}
+NOAA_FALLBACKS = {
+    "pm25": ["ndgd_apm25_hr01_bc", "ndgd_apm25_hr01"],
+    "o3": ["ndgd_ozone_1hr_avg_time"],
+    "smoke": ["ndgd_smoke_sfc_1hr_avg_time"],
+}
+
+
+def fetch_noaa_point(now, names, lat, lon):
+    """One forecast point. Returns ({pm25, o3, smoke}, {key: error text})."""
+    res, fails = {}, {}
+    for key, pats in NOAA_WANTED.items():
         cands = []
         for p in pats:
             for n in names:
                 if re.search(p, n) and n not in cands:
                     cands.append(n)
-        for n in fallbacks[key]:
+        for n in NOAA_FALLBACKS[key]:
             if n not in cands:
                 cands.append(n)
         errs = []
         for svc in cands:
             try:
-                res[key] = noaa_point_series(svc, now)
+                res[key] = noaa_point_series(svc, now, lat, lon)
                 res[key]["bias_corrected"] = svc.endswith("_bc")
                 break
             except Exception as e:  # noqa: BLE001
                 errs.append(str(e)[:160])
         if key not in res:
-            record_error(f"NOAA {key}", " | ".join(errs) or "no service found")
-    res["available_services"] = names[:80]
-    return res
+            fails[key] = " | ".join(errs) or "no service found"
+    return res, fails
+
+
+def fetch_noaa(now):
+    """All zones, in parallel: NOAA is the slowest source and each point needs dozens of calls."""
+    try:
+        names = noaa_services()
+    except Exception as e:  # noqa: BLE001
+        record_error("NOAA service list", e)
+        names = []
+    with ThreadPoolExecutor(max_workers=len(ZONES)) as pool:
+        futs = {zid: pool.submit(fetch_noaa_point, now, names, z["lat"], z["lon"]) for zid, z in ZONES.items()}
+        got = {}
+        for zid, f in futs.items():
+            try:
+                got[zid] = f.result()
+            except Exception as e:  # noqa: BLE001
+                got[zid] = ({}, {k: str(e)[:160] for k in NOAA_WANTED})
+    for key in NOAA_WANTED:  # one error line per pollutant, not one per zone
+        bad = [zid for zid, (_, fails) in got.items() if key in fails]
+        if bad:
+            record_error(f"NOAA {key}", f"failed for {len(bad)} of {len(ZONES)} areas ({', '.join(bad)}): {got[bad[0]][1][key]}")
+    return {zid: res for zid, (res, _) in got.items()}
 
 
 # -------------------------------------------------------------- Open-Meteo ----
-def fetch_cams():
+def fetch_cams_point(lat, lon):
     try:
         data = json.loads(get("https://air-quality-api.open-meteo.com/v1/air-quality", {
-            "latitude": LAT, "longitude": LON,
+            "latitude": lat, "longitude": lon,
             "hourly": "pm2_5,ozone,us_aqi",
             "timezone": "America/Denver", "past_days": 1, "forecast_days": 4,
         }))
@@ -346,16 +376,15 @@ def fetch_cams():
                 "o3": round(o3 / 1.96, 1) if o3 is not None else None,
                 "aqi": h["us_aqi"][i],
             })
-        return {"model": "CAMS global (via Open-Meteo)", "series": out}
+        return {"model": "CAMS global (via Open-Meteo)", "series": out}, None
     except Exception as e:  # noqa: BLE001
-        record_error("CAMS / Open-Meteo air quality", e)
-        return None
+        return None, e
 
 
-def fetch_met():
+def fetch_met_point(lat, lon):
     base = "https://api.open-meteo.com/v1/forecast"
     params = {
-        "latitude": LAT, "longitude": LON,
+        "latitude": lat, "longitude": lon,
         "hourly": "boundary_layer_height,wind_speed_10m,wind_speed_80m,temperature_2m,precipitation_probability",
         "timezone": "America/Denver", "past_days": 1, "forecast_days": 4,
         "wind_speed_unit": "mph", "temperature_unit": "fahrenheit",
@@ -383,11 +412,24 @@ def fetch_met():
                     "temp_f": h["temperature_2m"][i],
                     "precip_pct": precip[i],
                 })
-            return {"model": model or "best match", "series": out}
+            return {"model": model or "best match", "series": out}, None
         except Exception as e:  # noqa: BLE001
             last = e
-    record_error("Mixing height / Open-Meteo weather", last)
-    return None
+    return None, last
+
+
+def fetch_per_zone(fn, source):
+    """Run a per-point fetch for every zone; report failures as one error line."""
+    out, bad, first = {}, [], None
+    for zid, z in ZONES.items():
+        res, err = fn(z["lat"], z["lon"])
+        out[zid] = res
+        if res is None:
+            bad.append(zid)
+            first = first or err
+    if bad:
+        record_error(source, f"failed for {len(bad)} of {len(ZONES)} areas ({', '.join(bad)}): {first}")
+    return out
 
 
 # --------------------------------------------------------- Clearing Index ----
@@ -479,35 +521,41 @@ def reuse_previous(data, now):
         ser = (block or {}).get("series") or []
         return any(datetime.fromisoformat(p["t"]) > now + timedelta(hours=6) for p in ser)
 
-    for key in ("cams", "met"):
-        if not data.get(key) and still_useful(prev.get(key)):
-            data[key] = dict(prev[key], stale_from=stamp)
+    pz = prev.get("zones") or {}
+    for zid, z in data["zones"].items():
+        old = pz.get(zid) or {}
+        for key in ("cams", "met"):
+            if not z.get(key) and still_useful(old.get(key)):
+                z[key] = dict(old[key], stale_from=stamp)
+        for key in ("pm25", "o3", "smoke"):
+            if key not in z["noaa"] and still_useful((old.get("noaa") or {}).get(key)):
+                z["noaa"][key] = dict(old["noaa"][key], stale_from=stamp)
     pc = prev.get("clearing")
     if not data.get("clearing") and pc and any(d.get("date", "") >= now.date().isoformat() for d in pc.get("days", [])):
         data["clearing"] = dict(pc, stale_from=stamp)
-    for key in ("pm25", "o3", "smoke"):
-        if key not in data["noaa"] and still_useful((prev.get("noaa") or {}).get(key)):
-            data["noaa"][key] = dict(prev["noaa"][key], stale_from=stamp)
+    pf = prev.get("daq_forecast") or {}
+    for key, f in data["daq_forecast"].items():
+        old = pf.get(key) if isinstance(pf.get(key), dict) else None
+        if not f["rss"] and old and old.get("rss"):
+            data["daq_forecast"][key] = dict(old, stale_from=stamp)
 
 
 def calibrate_cams(data):
     """CAMS is a ~40 km global model and often reads far off in the valley.
-    Scale its PM2.5 by how it compared with the home monitor over the last 24 h."""
-    cams = data.get("cams")
-    home = next((s for s in data["stations"] if s["series"]), None)
-    if not cams or not home:
-        return
-    obs = {r["t"][:13]: r["pm25"] for r in home["series"][-24:] if r["pm25"] is not None}
-    pairs = [(obs[p["t"][:13]], p["pm25"]) for p in cams["series"]
-             if p["t"][:13] in obs and p["pm25"] is not None]
-    if len(pairs) < 8:
-        return
-    ratios = sorted((o + 1) / (c + 1) for o, c in pairs)
-    factor = max(0.15, min(2.0, ratios[len(ratios) // 2]))
-    for p in cams["series"]:
-        if p["pm25"] is not None:
-            p["pm25_adj"] = round(p["pm25"] * factor, 1)
-    cams["calibration"] = {"factor": round(factor, 2), "hours": len(pairs), "station": home["name"]}
+    For each monitor, work out how CAMS compared with it over the last 24 h.
+    The page multiplies CAMS PM2.5 by this factor for whichever monitor is chosen."""
+    for st in data["stations"]:
+        cams = (data["zones"].get(st["zone"]) or {}).get("cams")
+        if not cams or not st["series"]:
+            continue
+        obs = {r["t"][:13]: r["pm25"] for r in st["series"][-24:] if r["pm25"] is not None}
+        pairs = [(obs[p["t"][:13]], p["pm25"]) for p in cams["series"]
+                 if p["t"][:13] in obs and p["pm25"] is not None]
+        if len(pairs) < 8:
+            continue
+        ratios = sorted((o + 1) / (c + 1) for o, c in pairs)
+        factor = max(0.15, min(2.0, ratios[len(ratios) // 2]))
+        st["cams_cal"] = {"factor": round(factor, 2), "hours": len(pairs)}
 
 
 # ------------------------------------------------------------------- main ----
@@ -515,25 +563,28 @@ def main():
     now = datetime.now(TZ)
     data = {
         "generated_at": iso(now),
-        "location": {"name": LOCATION_NAME, "lat": LAT, "lon": LON},
+        "format": 2,
         "stations": fetch_stations(now),
         "daq_forecast": fetch_daq_forecast(),
-        "cams": fetch_cams(),
-        "met": fetch_met(),
         "clearing": fetch_clearing(now),
     }
-    data["noaa"] = fetch_noaa(now)  # slowest source goes last
+    cams = fetch_per_zone(fetch_cams_point, "CAMS / Open-Meteo air quality")
+    met = fetch_per_zone(fetch_met_point, "Mixing height / Open-Meteo weather")
+    noaa = fetch_noaa(now)  # slowest source goes last
+    data["zones"] = {zid: dict(z, cams=cams[zid], met=met[zid], noaa=noaa[zid]) for zid, z in ZONES.items()}
     reuse_previous(data, now)
     calibrate_cams(data)
     data["errors"] = errors
     with open(OUT, "w") as f:
         json.dump(data, f, separators=(",", ":"))
     ok = sum(1 for s in data["stations"] if s["series"])
-    noaa_keys = [k for k in data["noaa"] if k != "available_services"]
-    log(f"wrote {OUT}: {ok}/{len(STATIONS)} stations, noaa={noaa_keys}, "
-        f"cams={'yes' if data['cams'] else 'no'}, met={'yes' if data['met'] else 'no'}, errors={len(errors)}")
+    n_noaa = sum(1 for z in data["zones"].values() if z["noaa"].get("pm25"))
+    n_cams = sum(1 for z in data["zones"].values() if z["cams"])
+    n_met = sum(1 for z in data["zones"].values() if z["met"])
+    log(f"wrote {OUT}: {ok}/{len(STATIONS)} stations; zones with noaa pm25 {n_noaa}, cams {n_cams}, "
+        f"met {n_met} of {len(ZONES)}; errors={len(errors)}")
     # Fail the run only if nothing worked, so a partial outage still publishes.
-    if ok == 0 and not data["noaa"].get("pm25") and not data["cams"]:
+    if ok == 0 and n_noaa == 0 and n_cams == 0:
         sys.exit(1)
 
 
