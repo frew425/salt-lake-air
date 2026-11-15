@@ -23,6 +23,7 @@ import json
 import re
 import sys
 import time
+import urllib.error
 import urllib.parse
 import urllib.request
 from concurrent.futures import ThreadPoolExecutor
@@ -58,9 +59,11 @@ ZONES = {
 }
 # Utah DAQ's official forecast is issued per county.
 COUNTIES = {
-    "slc": {"name": "Salt Lake County", "rss": "https://air.utah.gov/rssFeed.php?id=slc"},
-    "utah": {"name": "Utah County", "rss": "https://air.utah.gov/rssFeed.php?id=ln"},
+    "slc": {"name": "Salt Lake County", "rss": "https://air.utah.gov/rssFeed.php?id=slc", "csv": "slc"},
+    "utah": {"name": "Utah County", "rss": "https://air.utah.gov/rssFeed.php?id=ln", "csv": "utah"},
 }
+# All counties in one file (Day, County, Severity, Action, Message); used when a county's RSS is empty.
+DAQ_FORECAST_CSV = "https://air.utah.gov/csvFeed.php?id=forecast"
 NOAA_ROOT = "https://mapservices.weather.noaa.gov/raster/rest/services/air_quality"
 
 # NWS Salt Lake City Smoke Management Forecast: the official daily Clearing Index.
@@ -93,6 +96,17 @@ def get(url, params=None, timeout=25, tries=2):
             req = urllib.request.Request(url, headers={"User-Agent": UA})
             with urllib.request.urlopen(req, timeout=timeout) as r:
                 return r.read().decode("utf-8", errors="replace")
+        except urllib.error.HTTPError as e:
+            last = e
+            if i + 1 < tries:
+                # 429 = rate limited: wait as long as the server asks (capped), not just 2 s
+                wait = 2
+                if e.code == 429:
+                    try:
+                        wait = min(30, max(5, int(e.headers.get("Retry-After") or 15)))
+                    except ValueError:
+                        wait = 15
+                time.sleep(wait)
         except Exception as e:  # noqa: BLE001
             last = e
             if i + 1 < tries:
@@ -196,9 +210,40 @@ def strip_html(s):
     return "\n".join(ln.strip() for ln in s.splitlines() if ln.strip())
 
 
-def fetch_daq_forecast():
-    """Official forecast per county: {"slc": {"rss": [...]}, "utah": {"rss": [...]}}."""
+def fetch_daq_forecast_csv():
+    """{county code: [rss-style items]} from DAQ's all-county forecast file."""
+    text = get(DAQ_FORECAST_CSV)
+    lines = [ln for ln in text.splitlines() if ln.strip()]
+    delim = "\t" if lines and "\t" in lines[0] else ","
+    rows = list(csv.reader(io.StringIO("\n".join(lines)), delimiter=delim))
+    if not rows:
+        return {}
+    hdr = [h.strip().lower() for h in rows[0]]
+    ix = {k: hdr.index(k) for k in ("day", "county", "severity", "action") if k in hdr}
+    if len(ix) < 4:
+        raise ValueError(f"unexpected header {rows[0]}")
     out = {}
+    for r in rows[1:]:
+        if len(r) <= max(ix.values()):
+            continue
+        try:
+            d = datetime.strptime(r[ix["day"]].strip(), "%Y-%m-%d")
+        except ValueError:
+            continue
+        out.setdefault(r[ix["county"]].strip().lower(), []).append({
+            "title": f"Forecast for {d.month:02d}/{d.day:02d}/{d.year}",
+            "description": f"Health: {r[ix['severity']].strip().title()} Action: {r[ix['action']].strip().title()}",
+            "pubDate": "",
+        })
+    for items in out.values():
+        items.sort(key=lambda it: it["title"][-4:] + it["title"][-10:-5])
+    return out
+
+
+def fetch_daq_forecast():
+    """Official forecast per county: {"slc": {"rss": [...]}, "utah": {"rss": [...]}}.
+    Each county's RSS first; DAQ's all-county CSV fills any county whose RSS is empty or down."""
+    out, need_csv, rss_err = {}, [], {}
     for key, c in COUNTIES.items():
         res = {"name": c["name"], "rss": []}
         try:
@@ -212,8 +257,22 @@ def fetch_daq_forecast():
             if not res["rss"]:
                 raise ValueError("no forecast items")
         except Exception as e:  # noqa: BLE001
-            record_error(f"DAQ forecast ({c['name']})", e)
+            need_csv.append(key)
+            rss_err[key] = e
         out[key] = res
+    if need_csv:
+        try:
+            table = fetch_daq_forecast_csv()
+        except Exception as e:  # noqa: BLE001
+            table = {}
+            log(f"DAQ forecast CSV failed: {e}")
+        for key in need_csv:
+            items = table.get(COUNTIES[key]["csv"], [])
+            if items:
+                out[key]["rss"] = items
+                out[key]["source"] = "csv"
+            else:
+                record_error(f"DAQ forecast ({COUNTIES[key]['name']})", rss_err[key])
     return out
 
 
@@ -357,34 +416,52 @@ def fetch_noaa(now):
 
 
 # -------------------------------------------------------------- Open-Meteo ----
-def fetch_cams_point(lat, lon):
+ZONE_IDS = list(ZONES)
+ZONE_LATS = ",".join(str(ZONES[z]["lat"]) for z in ZONE_IDS)
+ZONE_LONS = ",".join(str(ZONES[z]["lon"]) for z in ZONE_IDS)
+
+
+def openmeteo_all(base, params):
+    """One Open-Meteo request for every zone (comma-separated coordinates), so a run makes
+    two requests to Open-Meteo instead of ten; their free tier rate-limits shared CI IPs."""
+    data = json.loads(get(base, dict(params, latitude=ZONE_LATS, longitude=ZONE_LONS), tries=3))
+    if isinstance(data, dict):
+        data = [data]
+    if len(data) != len(ZONE_IDS):
+        raise RuntimeError(f"expected {len(ZONE_IDS)} locations, got {len(data)}")
+    return dict(zip(ZONE_IDS, data))
+
+
+def fetch_cams_all():
     try:
-        data = json.loads(get("https://air-quality-api.open-meteo.com/v1/air-quality", {
-            "latitude": lat, "longitude": lon,
+        got = openmeteo_all("https://air-quality-api.open-meteo.com/v1/air-quality", {
             "hourly": "pm2_5,ozone,us_aqi",
             "timezone": "America/Denver", "past_days": 1, "forecast_days": 4,
-        }))
+        })
+    except Exception as e:  # noqa: BLE001
+        record_error("CAMS / Open-Meteo air quality", e)
+        return {z: None for z in ZONE_IDS}
+    out = {}
+    for zid, data in got.items():
         h = data["hourly"]
-        out = []
+        ser = []
         for i, t in enumerate(h["time"]):
             dt = datetime.fromisoformat(t).replace(tzinfo=TZ)
             o3 = h["ozone"][i]
-            out.append({
+            ser.append({
                 "t": iso(dt),
                 "pm25": h["pm2_5"][i],
                 # µg/m³ -> ppb (approx. at 25 °C, 1 atm)
                 "o3": round(o3 / 1.96, 1) if o3 is not None else None,
                 "aqi": h["us_aqi"][i],
             })
-        return {"model": "CAMS global (via Open-Meteo)", "series": out}, None
-    except Exception as e:  # noqa: BLE001
-        return None, e
+        out[zid] = {"model": "CAMS global (via Open-Meteo)", "series": ser}
+    return out
 
 
-def fetch_met_point(lat, lon):
+def fetch_met_all():
     base = "https://api.open-meteo.com/v1/forecast"
     params = {
-        "latitude": lat, "longitude": lon,
         "hourly": "boundary_layer_height,wind_speed_10m,wind_speed_80m,temperature_2m,precipitation_probability",
         "timezone": "America/Denver", "past_days": 1, "forecast_days": 4,
         "wind_speed_unit": "mph", "temperature_unit": "fahrenheit",
@@ -393,43 +470,32 @@ def fetch_met_point(lat, lon):
     last = None
     # 80 m wind is closer to the transport wind used by the Clearing Index; if a
     # model does not serve it, fall back to the original request.
-    for prm, model in ((params, "gfs_seamless"), (plain, "gfs_seamless"), (params, None), (plain, None)):
+    for prm, model in ((params, "gfs_seamless"), (plain, "gfs_seamless"), (params, None)):
         try:
-            p = dict(prm, models=model) if model else prm
-            h = json.loads(get(base, p))["hourly"]
-            if all(v is None for v in h.get("boundary_layer_height", [])):
-                raise RuntimeError("boundary_layer_height all null")
-            n = len(h["time"])
-            precip = h.get("precipitation_probability") or [None] * n
-            wind80 = h.get("wind_speed_80m") or [None] * n
-            out = []
-            for i, t in enumerate(h["time"]):
-                out.append({
+            got = openmeteo_all(base, dict(prm, models=model) if model else prm)
+            out = {}
+            for zid, data in got.items():
+                h = data["hourly"]
+                if all(v is None for v in h.get("boundary_layer_height", [])):
+                    raise RuntimeError("boundary_layer_height all null")
+                n = len(h["time"])
+                precip = h.get("precipitation_probability") or [None] * n
+                wind80 = h.get("wind_speed_80m") or [None] * n
+                out[zid] = {"model": model or "best match", "series": [{
                     "t": iso(datetime.fromisoformat(t).replace(tzinfo=TZ)),
                     "blh_m": h["boundary_layer_height"][i],
                     "wind_mph": h["wind_speed_10m"][i],
                     "wind80_mph": wind80[i],
                     "temp_f": h["temperature_2m"][i],
                     "precip_pct": precip[i],
-                })
-            return {"model": model or "best match", "series": out}, None
+                } for i, t in enumerate(h["time"])]}
+            return out
         except Exception as e:  # noqa: BLE001
             last = e
-    return None, last
-
-
-def fetch_per_zone(fn, source):
-    """Run a per-point fetch for every zone; report failures as one error line."""
-    out, bad, first = {}, [], None
-    for zid, z in ZONES.items():
-        res, err = fn(z["lat"], z["lon"])
-        out[zid] = res
-        if res is None:
-            bad.append(zid)
-            first = first or err
-    if bad:
-        record_error(source, f"failed for {len(bad)} of {len(ZONES)} areas ({', '.join(bad)}): {first}")
-    return out
+            if "429" in str(e):
+                break  # rate limited: other variants hit the same server
+    record_error("Mixing height / Open-Meteo weather", last)
+    return {z: None for z in ZONE_IDS}
 
 
 # --------------------------------------------------------- Clearing Index ----
@@ -568,8 +634,8 @@ def main():
         "daq_forecast": fetch_daq_forecast(),
         "clearing": fetch_clearing(now),
     }
-    cams = fetch_per_zone(fetch_cams_point, "CAMS / Open-Meteo air quality")
-    met = fetch_per_zone(fetch_met_point, "Mixing height / Open-Meteo weather")
+    cams = fetch_cams_all()
+    met = fetch_met_all()
     noaa = fetch_noaa(now)  # slowest source goes last
     data["zones"] = {zid: dict(z, cams=cams[zid], met=met[zid], noaa=noaa[zid]) for zid, z in ZONES.items()}
     reuse_previous(data, now)

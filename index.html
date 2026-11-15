@@ -149,15 +149,6 @@ h1, h2, h3, p { margin: 0; }
 .chart text { fill: var(--fg-2); font-size: 11px; }
 
 /* ------------------------------------------------------------------ monitors */
-.srow { display: grid; grid-template-columns: minmax(0,1fr) 104px 56px; align-items: center; gap: 12px; min-height: 52px; }
-.srow + .srow { border-top: 1px solid var(--line); }
-.srow .n { font-size: 14px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.srow .n small { display: block; font-size: 12px; font-weight: 400; color: var(--fg-2); }
-.srow .bar { position: relative; height: 6px; border-radius: 3px; background: var(--track); }
-.srow .bar i { display: block; height: 100%; border-radius: 3px; background: var(--c); }
-.srow .bar u { position: absolute; top: -4px; width: 2px; height: 14px; background: var(--fg); }
-.srow .v { font-size: 16px; font-weight: 500; text-align: right; }
-.srow .v.na { color: var(--fg-2); font-weight: 400; }
 .mk { display: inline-flex; align-items: center; gap: 6px; }
 .mk i { width: 2px; height: 12px; background: var(--fg); }
 
@@ -233,7 +224,7 @@ a.t { color: var(--fg); }
 
 /* ------------------------------------------------------------------ layout: one column on phones, dashboard on wide screens */
 .side, .mainc, .pair { display: contents; }
-.hero { order: 1; } .stats { order: 2; } .a-h24 { order: 3; } .a-conds { order: 4; } .a-trend { order: 5; } .a-days { order: 6; } .a-mon { order: 7; } .about { order: 8; }
+.hero { order: 1; } .stats { order: 2; } .a-h24 { order: 3; } .a-conds { order: 4; } .a-trend { order: 5; } .a-days { order: 6; } .about { order: 8; }
 @media (min-width: 1000px) {
   .wrap { max-width: 1440px; display: grid; gap: 28px 56px; padding: 28px clamp(32px, 4vw, 64px) 48px; align-items: start;
     grid-template-columns: minmax(340px, 4fr) minmax(0, 8fr); grid-template-areas: "top top" "side mainc" "about about"; }
@@ -253,9 +244,7 @@ a.t { color: var(--fg); }
   dialog.sheet { margin: auto; border-radius: 20px; max-height: 80vh; }
 }
 @media (min-width: 1000px) and (max-height: 760px) { .side { position: static; } }
-@media (min-width: 1360px) { .pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 40px; } }
-@media (max-width: 380px) { .wrap { padding-left: 18px; padding-right: 18px; } .h-cat h1 { font-size: 64px; } .stat .v { font-size: 15px; } .srow { grid-template-columns: minmax(0,1fr) 80px 52px; } }
-@media (prefers-reduced-motion: reduce) { *, *::after { animation: none !important; transition: none !important; } }
+@media (max-width: 380px) { .wrap { padding-left: 18px; padding-right: 18px; } .h-cat h1 { font-size: 64px; } .stat .v { font-size: 15px; } @media (prefers-reduced-motion: reduce) { *, *::after { animation: none !important; transition: none !important; } }
 </style>
 </head>
 <body>
@@ -273,10 +262,9 @@ a.t { color: var(--fg); }
     <div class="side">
       <section class="hero" id="hero" aria-label="Current air quality"><div class="empty">Loading…</div></section>
       <div class="stats" id="stats"></div>
-
-      <section class="sec a-mon">
-        <div class="head"><div class="l"><h2>Valley stations</h2><button class="info" id="imon" type="button" aria-label="How to read the stations"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" aria-hidden="true"><circle cx="8" cy="8" r="6.2"/><path d="M8 7.4v3.4"/><circle cx="8" cy="5.1" r=".5" fill="currentColor"/></svg></button></div><div class="meta">PM2.5 · 24h avg, µg/m³</div></div>
-        <div id="stations"></div>
+      <section class="sec a-days">
+        <div class="head"><div class="l"><h2>Official forecast</h2><button class="info" id="idaq" type="button" aria-label="How to read the official forecast"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" aria-hidden="true"><circle cx="8" cy="8" r="6.2"/><path d="M8 7.4v3.4"/><circle cx="8" cy="5.1" r=".5" fill="currentColor"/></svg></button></div><div class="meta">Utah DAQ</div></div>
+        <div class="tiles" id="days"></div>
       </section>
     </div>
     <div class="mainc">
@@ -288,10 +276,6 @@ a.t { color: var(--fg); }
         <section class="sec a-conds">
           <div class="head"><div class="l"><h2>Conditions</h2><button class="info" id="icond" type="button" aria-label="How to read conditions"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" aria-hidden="true"><circle cx="8" cy="8" r="6.2"/><path d="M8 7.4v3.4"/><circle cx="8" cy="5.1" r=".5" fill="currentColor"/></svg></button></div><div class="meta">Next 24 hours</div></div>
           <div class="tiles" id="conds"></div>
-        </section>
-        <section class="sec a-days">
-          <div class="head"><div class="l"><h2>Official forecast</h2><button class="info" id="idaq" type="button" aria-label="How to read the official forecast"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" aria-hidden="true"><circle cx="8" cy="8" r="6.2"/><path d="M8 7.4v3.4"/><circle cx="8" cy="5.1" r=".5" fill="currentColor"/></svg></button></div><div class="meta">Utah DAQ</div></div>
-          <div class="tiles" id="days"></div>
         </section>
       </div>
       <section class="sec a-trend">
@@ -879,25 +863,7 @@ function renderTrend() {
   for (const x of s.length > 1 ? order : []) { const sp = el("span"), k = el("span", "key" + (x.dash ? " dash" : "")); k.style.setProperty("--c", x.color); sp.append(k, x.name); lg.appendChild(sp); }
   lg.style.display = s.length > 1 ? "" : "none";
   $("i3").dataset.info = note; $("unit").textContent = cfg.unit === "index" ? "Clearing Index" : cfg.unit;
-  chart($("chart"), { series: s, x0, x1, H: 230, ...cfg });
-}
-
-/* ============================================================ stations */
-function renderStations() {
-  const host = $("stations"); host.textContent = "";
-  const rows = (D.stations || []).map(s => { const l = (s.series || []).slice().reverse().find(r => r.pm25_24h != null || r.pm25 != null);
-    return { id: s.id, name: s.name, v: l ? (l.pm25_24h ?? l.pm25) : null, now: l ? l.pm25 : null }; });
-  const mx = Math.max(15, ...rows.map(r => r.v ?? 0)) * 1.05;
-  for (const r of rows) {
-    const row = el("div", "srow"), n = el("div", "n", r.name.replace(" (Midvale)", ""));
-    n.appendChild(el("small", "", (r.now != null ? `now ${r1(r.now)}` : "no PM2.5 now") + (r.id === SEL ? " · your station" : "")));
-    const bar = el("div", "bar"), i = el("i"), u = el("u"); bar.setAttribute("aria-hidden", "true");
-    if (r.v != null) { i.style.width = Math.max(3, r.v / mx * 100) + "%"; i.style.setProperty("--c", qv(pmCat(r.v).i)); } else i.style.width = "0";
-    u.style.left = 9 / mx * 100 + "%"; bar.append(i, u);
-    row.append(n, bar, el("div", "v" + (r.v == null ? " na" : ""), r1(r.v)));
-    host.appendChild(row);
-  }
-  const k = el("div", "small"), mk = el("span", "mk"); mk.append(el("i"), "Marker is 9 µg/m³, where Good ends"); k.style.marginTop = "8px"; k.appendChild(mk); host.appendChild(k);
+  chart($("chart"), { series: s, x0, x1, H: innerWidth >= 1000 ? 300 : 230, ...cfg });
 }
 
 /* ============================================================ about */
@@ -913,7 +879,7 @@ function renderStatus() {
   $("shed").textContent = D.clearing && D.clearing.airshed ? ` (airshed ${D.clearing.airshed})` : "";
   $("cal").textContent = cal ? ` (currently ×${cal.factor}, from ${cal.hours} hours at ${cal.station})` : "";
 }
-for (const [id, t] of Object.entries({"imon": "Each bar is a Utah DAQ station's 24-hour average PM2.5. The tick marks 9 µg/m³, the top of EPA's Good range, so a bar past the tick means that spot is above Good. \"Now\" is the latest hourly reading.", "icond": "Inversion reads the National Weather Service Clearing Index together with the air right now. Under 500 is poor ventilation, but over clean air it's only a heads-up: pollution usually takes days to build. Smoke and ozone are forecast peaks for the next 24 hours. The four small bars show how high each one is.", "idaq": "Utah DAQ's daily forecast. The word is the expected air quality; the line under it is the action level for wood and coal burning: Unrestricted, Voluntary (please don't burn) or Mandatory (burning prohibited). Salt Lake County treats Voluntary days as no-burn days too."})) $(id).dataset.info = t;
+for (const [id, t] of Object.entries({"icond": "Inversion reads the National Weather Service Clearing Index together with the air right now. Under 500 is poor ventilation, but over clean air it's only a heads-up: pollution usually takes days to build. Smoke and ozone are forecast peaks for the next 24 hours. The four small bars show how high each one is.", "idaq": "Utah DAQ's daily forecast. The word is the expected air quality; the line under it is the action level for wood and coal burning: Unrestricted, Voluntary (please don't burn) or Mandatory (burning prohibited). Salt Lake County treats Voluntary days as no-burn days too."})) $(id).dataset.info = t;
 $("istn").dataset.info = "Why a station, not your location? Every reading here comes from a Utah DAQ air monitoring station, the regulatory instruments that actually measure the air. The page never asks where you are; you pick the station closest to you, and everything follows it. Air varies by neighborhood, especially near freeways and up on the benches, so the nearest station is a close guide, not your exact street.";
 const sheet = $("about");
 $("about-btn").addEventListener("click", () => sheet.showModal());
@@ -923,7 +889,7 @@ sheet.addEventListener("click", e => { if (e.target === sheet) sheet.close(); })
 function setUpdated() { const gen = new Date(D.generated_at), stale = Date.now() - gen > 2 * HOUR; $("updated").textContent = (stale ? "Delayed · " : "Updated ") + ago(gen); }
 function renderAll() {
   resolveSel(); buildView(); buildCal(); drawPill(); syncUrl(); setUpdated();
-  renderHero(); render24(); renderConds(); renderTrend(); renderDays(); renderStations(); renderStatus();
+  renderHero(); render24(); renderConds(); renderTrend(); renderDays(); renderStatus();
 }
 async function load() {
   const b = $("reload"); b.classList.add("spin");
