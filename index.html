@@ -191,6 +191,30 @@ dialog.sheet[open] { animation: up .22s ease-out; } @keyframes up { from { trans
 .tip .key { border-top-color: currentColor; }
 
 @media (max-width: 520px) { .wm #loc { display: none; } }
+
+/* ------------------------------------------------------------------ layout: one column on phones, dashboard on wide screens */
+.side, .mainc, .pair { display: contents; }
+.hero { order: 1; } .stats { order: 2; } .a-h24 { order: 3; } .a-conds { order: 4; } .a-trend { order: 5; } .a-days { order: 6; } .a-mon { order: 7; } .about { order: 8; }
+@media (min-width: 1000px) {
+  .wrap { max-width: 1440px; display: grid; gap: 28px 56px; padding: 28px clamp(32px, 4vw, 64px) 48px; align-items: start;
+    grid-template-columns: minmax(340px, 4fr) minmax(0, 8fr); grid-template-areas: "top top" "side mainc" "about about"; }
+  .top { grid-area: top; } .about { grid-area: about; border-bottom: 0; }
+  .side > *, .mainc > *, .pair > * { order: 0; }
+  .side { grid-area: side; display: flex; flex-direction: column; gap: 28px; position: sticky; top: 24px; }
+  .mainc { grid-area: mainc; display: flex; flex-direction: column; gap: 28px; min-width: 0; }
+  .pair { display: flex; flex-direction: column; gap: 28px; }
+  .hero { margin-top: 0; padding-top: 16px; border-top: 1px solid var(--line); }
+  .h-cat h1 { font-size: clamp(76px, 6.4vw, 108px); }
+  .h-cat h1.md { font-size: clamp(52px, 4.4vw, 72px); }
+  .aqi .num { font-size: clamp(60px, 4.8vw, 80px); }
+  .insight { font-size: clamp(20px, 1.5vw, 24px); }
+  .stats { grid-template-columns: repeat(3, minmax(0, 1fr)); row-gap: 16px; }
+  .hours { height: clamp(120px, 11vw, 170px); }
+  .a-trend .seg { max-width: 420px; }
+  dialog.sheet { margin: auto; border-radius: 20px; max-height: 80vh; }
+}
+@media (min-width: 1000px) and (max-height: 760px) { .side { position: static; } }
+@media (min-width: 1360px) { .pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 40px; } }
 @media (max-width: 380px) { .wrap { padding-left: 18px; padding-right: 18px; } .h-cat h1 { font-size: 64px; } .stat .v { font-size: 15px; } .srow { grid-template-columns: minmax(0,1fr) 80px 52px; } }
 @media (prefers-reduced-motion: reduce) { *, *::after { animation: none !important; transition: none !important; } }
 </style>
@@ -205,40 +229,41 @@ dialog.sheet[open] { animation: up .22s ease-out; } @keyframes up { from { trans
   </div>
 
   <main style="display: contents">
-    <section class="hero" id="hero" aria-label="Current air quality"><div class="empty">Loading…</div></section>
-    <div class="stats" id="stats"></div>
+    <div class="side">
+      <section class="hero" id="hero" aria-label="Current air quality"><div class="empty">Loading…</div></section>
+      <div class="stats" id="stats"></div>
 
-    <section class="sec">
-      <div class="head"><div class="l"><h2>Next 24 hours</h2><button class="info" id="i24" type="button" aria-label="About the hourly forecast"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" aria-hidden="true"><circle cx="8" cy="8" r="6.2"/><path d="M8 7.4v3.4"/><circle cx="8" cy="5.1" r=".5" fill="currentColor"/></svg></button></div><div class="meta" id="best"></div></div>
-      <div id="h24"></div>
-    </section>
-
-    <section class="sec">
-      <div class="head"><h2>Conditions</h2><div class="meta">Next 24 hours</div></div>
-      <div class="tiles" id="conds"></div>
-    </section>
-
-    <section class="sec">
-      <div class="head"><div class="l"><h2>3-day outlook</h2><button class="info" id="i3" type="button" aria-label="About this chart"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" aria-hidden="true"><circle cx="8" cy="8" r="6.2"/><path d="M8 7.4v3.4"/><circle cx="8" cy="5.1" r=".5" fill="currentColor"/></svg></button></div><div class="meta" id="unit"></div></div>
-      <div class="seg" role="group" aria-label="Metric">
-        <button type="button" data-m="pm" aria-pressed="true">PM2.5</button>
-        <button type="button" data-m="o3" aria-pressed="false">Ozone</button>
-        <button type="button" data-m="mix" aria-pressed="false">Inversion</button>
+      <section class="sec a-mon">
+        <div class="head"><h2>Valley monitors</h2><div class="meta">PM2.5 · 24h avg, µg/m³</div></div>
+        <div id="stations"></div>
+      </section>
+    </div>
+    <div class="mainc">
+      <section class="sec a-h24">
+        <div class="head"><div class="l"><h2>Next 24 hours</h2><button class="info" id="i24" type="button" aria-label="About the hourly forecast"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" aria-hidden="true"><circle cx="8" cy="8" r="6.2"/><path d="M8 7.4v3.4"/><circle cx="8" cy="5.1" r=".5" fill="currentColor"/></svg></button></div><div class="meta" id="best"></div></div>
+        <div id="h24"></div>
+      </section>
+      <div class="pair">
+        <section class="sec a-conds">
+          <div class="head"><h2>Conditions</h2><div class="meta">Next 24 hours</div></div>
+          <div class="tiles" id="conds"></div>
+        </section>
+        <section class="sec a-days">
+          <div class="head"><h2>Official forecast</h2><div class="meta">Utah DAQ</div></div>
+          <div class="tiles" id="days"></div>
+        </section>
       </div>
-      <div class="legend" id="legend"></div>
-      <div class="chart" id="chart"></div>
-    </section>
-
-    <section class="sec">
-      <div class="head"><h2>Official forecast</h2><div class="meta">Utah DAQ</div></div>
-      <div class="tiles" id="days"></div>
-    </section>
-
-    <section class="sec">
-      <div class="head"><h2>Valley monitors</h2><div class="meta">PM2.5 · 24h avg, µg/m³</div></div>
-      <div id="stations"></div>
-    </section>
-
+      <section class="sec a-trend">
+        <div class="head"><div class="l"><h2>3-day outlook</h2><button class="info" id="i3" type="button" aria-label="About this chart"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" aria-hidden="true"><circle cx="8" cy="8" r="6.2"/><path d="M8 7.4v3.4"/><circle cx="8" cy="5.1" r=".5" fill="currentColor"/></svg></button></div><div class="meta" id="unit"></div></div>
+        <div class="seg" role="group" aria-label="Metric">
+          <button type="button" data-m="pm" aria-pressed="true">PM2.5</button>
+          <button type="button" data-m="o3" aria-pressed="false">Ozone</button>
+          <button type="button" data-m="mix" aria-pressed="false">Inversion</button>
+        </div>
+        <div class="legend" id="legend"></div>
+        <div class="chart" id="chart"></div>
+      </section>
+    </div>
     <button class="about" id="about-btn" type="button" aria-haspopup="dialog">
       <span class="a">About this data</span>
       <span class="b"><span id="status">Sources and methodology</span><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 2.5 9.5 7 5 11.5"/></svg></span>
