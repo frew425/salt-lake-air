@@ -207,6 +207,25 @@ a.t { color: var(--fg); }
   .pk-foot { display: flex; justify-content: flex-end; } .pk-foot .btn { width: 260px; }
 }
 
+/* ------------------------------------------------------------------ feedback */
+.fb { display: flex; flex-direction: column; gap: 10px; }
+.fb[hidden] { display: none; }
+.fb-type { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 6px; padding: 0; border: 0; }
+.fb-type legend { margin-bottom: 8px; font-size: 13px; font-weight: 500; color: var(--fg-2); }
+.fb-type label { position: relative; }
+.fb-type input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+.fb-type span { display: inline-flex; align-items: center; min-height: 44px; padding: 0 16px; border: 1px solid var(--line); border-radius: 22px; font-size: 14px; background: var(--tile); }
+.fb-type input:checked + span { border-color: var(--fg); background: var(--fg); color: var(--sheet); font-weight: 500; }
+.fb-type input:focus-visible + span { outline: 2px solid var(--fg); outline-offset: 2px; }
+.fb-l { font-size: 13px; font-weight: 500; color: var(--fg-2); }
+.fb-l span { font-weight: 400; }
+.fb textarea, .fb input[type=email] { width: 100%; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--tile); color: var(--fg); font: inherit; font-size: 16px; resize: vertical; }
+.fb textarea:focus, .fb input[type=email]:focus { outline: 2px solid var(--fg); outline-offset: 1px; }
+.fb-hp { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }
+.fb-err { margin: 0; min-height: 1em; font-size: 13px; color: var(--q4); }
+.fb-ok { margin: 8px 0; font-size: 17px; line-height: 1.5; }
+dialog#fb { max-width: 560px; }
+
 /* ------------------------------------------------------------------ tooltip */
 .tip { position: fixed; z-index: 30; pointer-events: none; min-width: 150px; padding: 9px 12px; border-radius: 10px; font-size: 12px; background: var(--fg); color: var(--bg); opacity: 0; transition: opacity .1s; }
 .tip.on { opacity: 1; }
@@ -224,11 +243,13 @@ a.t { color: var(--fg); }
 
 /* ------------------------------------------------------------------ layout: one column on phones, dashboard on wide screens */
 .side, .mainc, .pair { display: contents; }
-.hero { order: 1; } .stats { order: 2; } .a-h24 { order: 3; } .a-conds { order: 4; } .a-trend { order: 5; } .a-days { order: 6; } .about { order: 8; }
+.hero { order: 1; } .stats { order: 2; } .a-h24 { order: 3; } .a-conds { order: 4; } .a-trend { order: 5; } .a-days { order: 6; } .foot { order: 8; }
+.about + .about { border-top: 0; }
+.about[hidden] { display: none; }
 @media (min-width: 1000px) {
   .wrap { max-width: 1440px; display: grid; gap: 28px 56px; padding: 28px clamp(32px, 4vw, 64px) 48px; align-items: start;
-    grid-template-columns: minmax(340px, 4fr) minmax(0, 8fr); grid-template-areas: "top top" "side mainc" "about about"; }
-  .top { grid-area: top; } .about { grid-area: about; border-bottom: 0; }
+    grid-template-columns: minmax(340px, 4fr) minmax(0, 8fr); grid-template-areas: "top top" "side mainc" "side about"; }
+  .top { grid-area: top; } .foot { grid-area: about; } .foot > .about:last-of-type, .foot > .about:has(+ [hidden]) { border-bottom: 0; }
   .side > *, .mainc > *, .pair > * { order: 0; }
   .side { grid-area: side; display: flex; flex-direction: column; gap: 28px; position: sticky; top: 24px; }
   .mainc { grid-area: mainc; display: flex; flex-direction: column; gap: 28px; min-width: 0; }
@@ -289,10 +310,16 @@ a.t { color: var(--fg); }
         <div class="chart" id="chart"></div>
       </section>
     </div>
+    <div class="foot">
     <button class="about" id="about-btn" type="button" aria-haspopup="dialog">
       <span class="a">About this data</span>
       <span class="b"><span id="status">Sources and methodology</span><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 2.5 9.5 7 5 11.5"/></svg></span>
     </button>
+    <button class="about" id="fb-open" type="button" aria-haspopup="dialog" hidden>
+      <span class="a">Feedback</span>
+      <span class="b"><span>Contact the owner or report a problem</span><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 2.5 9.5 7 5 11.5"/></svg></span>
+    </button>
+    </div>
   </main>
 </div>
 
@@ -369,6 +396,33 @@ a.t { color: var(--fg); }
     </div>
     <div class="pk-foot"><button class="btn" id="pk-use" type="button">Use this station</button></div>
   </div>
+</dialog>
+<dialog class="sheet" id="fb" aria-labelledby="fb-h">
+  <form class="sheet-in" id="fb-form" novalidate>
+    <div class="sheet-top"><h2 id="fb-h">Send feedback</h2>
+      <button class="icon-btn" id="fb-x" type="button" aria-label="Close"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M3.5 3.5l9 9M12.5 3.5l-9 9"/></svg></button>
+    </div>
+    <div id="fb-body" class="fb">
+      <fieldset class="fb-type"><legend>What's it about?</legend>
+        <label><input type="radio" name="fb-type" value="Bug" checked><span>Bug</span></label>
+        <label><input type="radio" name="fb-type" value="Data looks wrong"><span>Data looks wrong</span></label>
+        <label><input type="radio" name="fb-type" value="Idea"><span>Idea</span></label>
+        <label><input type="radio" name="fb-type" value="Other"><span>Other</span></label>
+      </fieldset>
+      <label class="fb-l" for="fb-msg">Message</label>
+      <textarea id="fb-msg" rows="5" maxlength="2000" required placeholder="What happened, or what would help?"></textarea>
+      <label class="fb-l" for="fb-email">Email <span>(optional, only if you'd like a reply)</span></label>
+      <input id="fb-email" type="email" autocomplete="email" inputmode="email" maxlength="200">
+      <input id="fb-hp" type="text" tabindex="-1" autocomplete="off" aria-hidden="true" class="fb-hp">
+      <p class="small">The station, time and readings on your screen are attached so the owner can see what you saw. Nothing else about you is sent.</p>
+      <p class="fb-err" id="fb-err" role="alert"></p>
+      <button class="btn" id="fb-send" type="submit">Send</button>
+    </div>
+    <div id="fb-done" class="fb" hidden>
+      <p class="fb-ok">Thanks, it's on its way to the owner.</p>
+      <button class="btn" id="fb-close" type="button">Done</button>
+    </div>
+  </form>
 </dialog>
 <div class="tip" id="tip"></div>
 
@@ -642,6 +696,56 @@ $("pk-x").addEventListener("click", () => closePicker(false));
 $("pk-use").addEventListener("click", () => closePicker(true));
 picker.addEventListener("click", e => { if (e.target === picker) closePicker(false); });
 picker.addEventListener("cancel", e => { e.preventDefault(); closePicker(false); });
+
+/* ============================================================ feedback
+   Posts to the owner's Google Form; answers land in a linked Google Sheet. No server, no accounts.
+   To set up: create the form, open "Get pre-filled link", and copy the form id and entry ids here. */
+const FEEDBACK = {
+  form: "1FAIpQLSfm1VIOmOLBsMQ7TvD5qTCOOlIT0rHzHgMdjQsCmq9hkusnyw",  // the id between /forms/d/e/ and /viewform, e.g. "1FAIpQLSc..."
+  entries: { type: "entry.1665240207", message: "entry.2058405155", email: "entry.174046147", details: "entry.985152583" },  // e.g. "entry.123456789"
+};
+const fbReady = () => FEEDBACK.form && Object.values(FEEDBACK.entries).every(Boolean);
+$("fb-open").hidden = !fbReady();
+const fb = $("fb");
+function fbDetails() {
+  const st = home(), a = document.querySelector(".aqi .num");
+  const last = st && [...(st.series || [])].reverse().find(r => r.pm25 != null);
+  return [
+    `Station: ${st ? `${st.name} (${st.id})` : "none"}`,
+    `Shown AQI: ${a ? a.textContent : "—"}${last ? ` · PM2.5 ${last.pm25} at ${last.t}` : ""}`,
+    `Data updated: ${D ? D.generated_at : "not loaded"}`,
+    `Chart: ${CHART_R[METRIC]} · Page: ${location.href}`,
+    `Screen: ${innerWidth}×${innerHeight} · ${matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"} · ${navigator.userAgent}`,
+    `Sent: ${new Date().toISOString()}`,
+  ].join("\n");
+}
+function fbOpen() { $("fb-body").hidden = false; $("fb-done").hidden = true; $("fb-err").textContent = ""; $("fb-send").disabled = false;
+  if (sheet.open) sheet.close(); fb.showModal(); }
+$("fb-open").addEventListener("click", fbOpen);
+$("fb-x").addEventListener("click", () => fb.close());
+$("fb-close").addEventListener("click", () => fb.close());
+fb.addEventListener("click", e => { if (e.target === fb) fb.close(); });
+$("fb-form").addEventListener("submit", async e => {
+  e.preventDefault();
+  const msg = $("fb-msg").value.trim(), email = $("fb-email").value.trim(), err = $("fb-err");
+  if ($("fb-hp").value) { $("fb-body").hidden = true; $("fb-done").hidden = false; return; }  // bot: pretend it worked
+  if (msg.length < 3) { err.textContent = "Add a few words about what happened."; $("fb-msg").focus(); return; }
+  if (email && !$("fb-email").checkValidity()) { err.textContent = "That email doesn't look right. Leave it blank if you don't need a reply."; return; }
+  let lastSent = 0; try { lastSent = +localStorage.getItem("sla-fb-at") || 0; } catch (x) {}
+  if (Date.now() - lastSent < 60e3) { err.textContent = "Thanks, one message a minute please. Try again shortly."; return; }
+  const body = new URLSearchParams();
+  body.append(FEEDBACK.entries.type, document.querySelector('input[name="fb-type"]:checked').value);
+  body.append(FEEDBACK.entries.message, msg);
+  if (email) body.append(FEEDBACK.entries.email, email);
+  body.append(FEEDBACK.entries.details, fbDetails());
+  $("fb-send").disabled = true; err.textContent = "";
+  try {
+    // Google doesn't let pages read its reply, so a request that leaves the browser counts as sent.
+    await fetch(`https://docs.google.com/forms/d/e/${FEEDBACK.form}/formResponse`, { method: "POST", mode: "no-cors", body });
+    try { localStorage.setItem("sla-fb-at", String(Date.now())); } catch (x) {}
+    $("fb-msg").value = ""; $("fb-body").hidden = true; $("fb-done").hidden = false;
+  } catch (x) { err.textContent = "Couldn't send. Check your connection and try again."; $("fb-send").disabled = false; }
+});
 
 function flash(btn, text) { tip.textContent = text; tip.classList.add("on", "note"); tip._for = null; const r = btn.getBoundingClientRect(), w = tip.offsetWidth;
   tip.style.left = Math.max(12, Math.min(r.left + r.width / 2 - w / 2, innerWidth - w - 12)) + "px"; tip.style.top = r.bottom + 8 + "px"; setTimeout(hideTip, 2200); }
