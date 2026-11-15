@@ -11,7 +11,7 @@
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600&family=Outfit:wght@300;500&display=swap" rel="stylesheet">
 <style>
 /* ------------------------------------------------------------------ tokens */
 :root {
@@ -20,6 +20,7 @@
   --line: rgba(20,33,48,.14); --tile: #ffffff; --track: rgba(20,33,48,.1); --sheet: #ffffff;
   --s-obs: #142130; --s-1: #2468c0; --s-2: #b84a17; --mix: #5e6c8c;
   /* status colors: same order and meaning as EPA, calmer */
+  --logo-name: #3d5063; --logo-air: #3aa585; --logo-0: #e06b67; --logo-1: #dcb64a; --logo-2: #2f9a7a; --logo-3: #56b596; --logo-4: #7cc4ad;
   --q1: #2f9a7a; --q2: #c2941a; --q3: #dd7a30; --q4: #cf4d49; --q5: #7a5bc2; --q6: #8c4466;
 }
 :root[data-q="2"] { --bg: #f4f0e4; }
@@ -32,6 +33,7 @@
     --bg: #0f1822; --fg: #e9eef4; --fg-15: #c9d2dc; --fg-2: #a7b2bf;
     --line: rgba(255,255,255,.12); --tile: rgba(255,255,255,.06); --track: rgba(255,255,255,.12); --sheet: #172231;
     --s-obs: #e9eef4; --s-1: #5c9ff0; --s-2: #ec7a45; --mix: #8fa0c8;
+    --logo-name: #d3dbe4; --logo-air: #7fd4b6; --logo-0: #ec7a75; --logo-1: #e2bf55; --logo-2: #4cc29d; --logo-3: #6fcfae; --logo-4: #9fdcc6;
     --q1: #4cc29d; --q2: #e2bf55; --q3: #f2a266; --q4: #ec7a75; --q5: #a993e0; --q6: #c9709a;
   }
   :root[data-q="2"] { --bg: #16170f; }
@@ -63,8 +65,11 @@ h1, h2, h3, p { margin: 0; }
 
 /* ------------------------------------------------------------------ top */
 .top { display: flex; justify-content: space-between; align-items: center; gap: 12px; min-height: 44px; }
-.wm { display: flex; align-items: center; gap: 9px; font-size: 15px; font-weight: 600; letter-spacing: -.01em; text-decoration: none; white-space: nowrap; }
-.wm .mark { width: 22px; height: 22px; flex: none; }
+.wm { display: flex; align-items: center; gap: 9px; text-decoration: none; white-space: nowrap; }
+.wm .mark { width: 24px; height: 23px; flex: none; }
+.wm .nm { font-family: Outfit, Geist, ui-sans-serif, sans-serif; font-size: 19px; font-weight: 500; letter-spacing: -.02em; line-height: 1; color: var(--logo-name); }
+.wm .air { font-weight: 300; color: var(--logo-air); }
+.mark .d0 { fill: var(--logo-0); } .mark .d1 { fill: var(--logo-1); } .mark .d2 { fill: var(--logo-2); } .mark .d3 { fill: var(--logo-3); } .mark .d4 { fill: var(--logo-4); }
 .wm #loc { font-weight: 400; color: var(--fg-2); }
 .top-r { display: flex; align-items: center; gap: 4px; font-size: 13px; color: var(--fg-2); white-space: nowrap; }
 .icon-btn { width: 44px; height: 44px; margin-right: -12px; display: grid; place-items: center; border: 0; background: none; border-radius: 12px; cursor: pointer; color: var(--fg-2); }
@@ -193,7 +198,7 @@ dialog.sheet[open] { animation: up .22s ease-out; } @keyframes up { from { trans
 <body>
 <div class="wrap">
   <div class="top">
-    <a class="wm" href="./"><svg class="mark" viewBox="150 190 724 684" aria-hidden="true"><circle cx="232" cy="792" r="62" fill="#1f6f58"/><circle cx="372" cy="792" r="62" fill="#1f6f58"/><circle cx="512" cy="792" r="62" fill="#1f6f58"/><circle cx="652" cy="792" r="62" fill="#1f6f58"/><circle cx="792" cy="792" r="62" fill="#1f6f58"/><circle cx="232" cy="652" r="52" fill="#2f9a7a"/><circle cx="372" cy="652" r="52" fill="#2f9a7a"/><circle cx="512" cy="652" r="52" fill="#2f9a7a"/><circle cx="652" cy="652" r="52" fill="#2f9a7a"/><circle cx="792" cy="652" r="52" fill="#2f9a7a"/><circle cx="232" cy="512" r="40" fill="#3fae8c"/><circle cx="372" cy="512" r="40" fill="#3fae8c"/><circle cx="512" cy="512" r="40" fill="#3fae8c"/><circle cx="652" cy="512" r="40" fill="#3fae8c"/><circle cx="792" cy="512" r="40" fill="#3fae8c"/><circle cx="232" cy="372" r="28" fill="#56b596"/><circle cx="372" cy="372" r="28" fill="#56b596"/><circle cx="512" cy="372" r="28" fill="#56b596"/><circle cx="652" cy="372" r="28" fill="#56b596"/><circle cx="792" cy="372" r="28" fill="#56b596"/><circle cx="232" cy="232" r="16" fill="#7cc4ad"/><circle cx="372" cy="232" r="16" fill="#7cc4ad"/><circle cx="512" cy="232" r="16" fill="#7cc4ad"/><circle cx="652" cy="232" r="16" fill="#7cc4ad"/><circle cx="792" cy="232" r="16" fill="#7cc4ad"/></svg><span class="nm">Salt Lake Air</span><span id="loc"></span></a>
+    <a class="wm" href="./"><svg class="mark" viewBox="150 190 724 684" aria-hidden="true"><circle class="d0" cx="232" cy="792" r="62"/><circle class="d0" cx="372" cy="792" r="62"/><circle class="d0" cx="512" cy="792" r="62"/><circle class="d0" cx="652" cy="792" r="62"/><circle class="d0" cx="792" cy="792" r="62"/><circle class="d1" cx="232" cy="652" r="52"/><circle class="d1" cx="372" cy="652" r="52"/><circle class="d1" cx="512" cy="652" r="52"/><circle class="d1" cx="652" cy="652" r="52"/><circle class="d1" cx="792" cy="652" r="52"/><circle class="d2" cx="232" cy="512" r="40"/><circle class="d2" cx="372" cy="512" r="40"/><circle class="d2" cx="512" cy="512" r="40"/><circle class="d2" cx="652" cy="512" r="40"/><circle class="d2" cx="792" cy="512" r="40"/><circle class="d3" cx="232" cy="372" r="28"/><circle class="d3" cx="372" cy="372" r="28"/><circle class="d3" cx="512" cy="372" r="28"/><circle class="d3" cx="652" cy="372" r="28"/><circle class="d3" cx="792" cy="372" r="28"/><circle class="d4" cx="232" cy="232" r="16"/><circle class="d4" cx="372" cy="232" r="16"/><circle class="d4" cx="512" cy="232" r="16"/><circle class="d4" cx="652" cy="232" r="16"/><circle class="d4" cx="792" cy="232" r="16"/></svg><span class="nm">Salt Lake <span class="air">Air</span></span><span id="loc"></span></a>
     <div class="top-r"><span id="updated">Loading</span>
       <button class="icon-btn" id="reload" type="button" aria-label="Refresh"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><path d="M13.5 8a5.5 5.5 0 1 1-1.6-3.9"/><path d="M13.5 2.5v3h-3"/></svg></button>
     </div>
