@@ -50,7 +50,7 @@ NOAA_ROOT = "https://mapservices.weather.noaa.gov/raster/rest/services/air_quali
 # NWS Salt Lake City Smoke Management Forecast: the official daily Clearing Index.
 # Airshed numbers are on the map at https://www.weather.gov/slc/ClearingIndex
 NWS_SMF_LIST = "https://api.weather.gov/products/types/SMF/locations/SLC"
-CLEARING_AIRSHED = 5
+CLEARING_AIRSHED = 8  # S. Wasatch Front (Salt Lake Valley); map: smokemgt.utah.gov/static/pdf/Airsheds_NAAclass1.pdf
 
 OUT = "data.json"
 UA = "slc-air-dashboard/1.0 (personal, non-commercial; github pages)"
