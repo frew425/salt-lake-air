@@ -321,7 +321,7 @@ a.t { color: var(--fg); }
       <div class="how">
         <p><b>Your station.</b> Current readings come from the Utah DAQ air monitoring station you choose. Model forecasts are fetched for five areas of the Salt Lake and Utah valleys, and nearby monitors share one, because the models are much coarser than the distance between neighbouring stations. The official forecast follows the station's county, and the Clearing Index is shared across airshed 8. Your choice is stored only in this browser. The link in the address bar carries the monitor and chart, so it can be shared.</p>
         <p><b>AQI.</b> The big number is the US AQI for fine particles (PM2.5), using EPA's current breakpoints, where 0 to 9 µg/m³ is Good. It uses EPA's NowCast: a weighted average of the last 12 hours that leans on the most recent ones when levels are changing fast.</p>
-        <p><b>Hourly forecast.</b> The next 24 hours use NOAA's hourly PM2.5 wherever it has a value, with the calibrated CAMS model filling gaps. Each hour is converted to AQI the same way.</p>
+        <p><b>Hourly forecast.</b> The next 24 hours use NOAA's hourly PM2.5 wherever it has a value, with the calibrated CAMS model filling gaps. Each hour is converted to AQI the same way. Because the models are issued hours earlier and can be off by a factor of two or three in the valley, the next few hours are scaled toward what your station measured over the last six hours, and that adjustment fades out over 12 hours so later hours are the model's own forecast. The 3-day chart shows the models unadjusted, next to the measurements.</p>
         <p><b>CAMS calibration.</b> CAMS is a coarse global model and often misreads the valley. Its PM2.5 is scaled by how it compared with your chosen station over the last 24 hours<span id="cal"></span>.</p>
         <p><b>Inversion and trapped air.</b> An inversion is a lid of warm air that traps cold air and pollution in the valley. Utah measures how well the valley can flush that out with the Clearing Index: mixing depth in hundreds of feet, multiplied by the wind through that layer in knots. NWS and Utah DAQ treat under 500 as poor ventilation, 500 to 1,000 as moderate and 1,000 or more as excellent. Open burning is restricted below 500 under Utah rule R307-202, which also uses 250 as its lowest winter cut-off.</p>
         <p><b>Two separate signals.</b> The AQI says what is in the air now. The Clearing Index says how fast new pollution can build. After a storm the air is usually clean even when high pressure has already dropped the Clearing Index, and it typically takes a few days of traffic and heating for pollution to build back up. So a low index over clean air only gets a quiet note. The Inversion tile reads <b>not yet</b> while the air is clean, <b>building</b> when the index is under 500 and the air is still good but more than 3 AQI points above its 24-hour average, <b>active</b> once the air is moderate or worse, <b>lifting</b> when the index is 500 or more and the air is unhealthy or improving from moderate, and <b>none</b> otherwise.</p>
@@ -514,14 +514,33 @@ function hourlyPM() {
   const now = Date.now(), next = p.filter(x => x.t >= now - HOUR && x.t <= now + 24 * HOUR);
   const nn = next.filter(x => x.s === "NOAA").length;
   const src = !next.length ? "CAMS" : nn === next.length ? "NOAA" : nn === 0 ? "CAMS" : "NOAA + CAMS";
-  return { src, bc: n.pm25 && n.pm25.bias_corrected, p };
+  const a = anchor(p);
+  return { src, bc: n.pm25 && n.pm25.bias_corrected, p: a.p, ratio: a.ratio, raw: p };
+}
+/* Anchor the near-term forecast to what the station is measuring. Models are issued hours earlier
+   and are often off by a factor of two or three in the valley, which would show "moderate" bars while
+   the station reads good. Compare the station's last 3 hours with the forecast for the hour right after
+   its latest reading, scale the forecast by that ratio, and fade the adjustment out over 12 hours. */
+const ANCHOR_FADE_H = 12;
+function anchor(p) {
+  const st = home(), obs = new Map(((st && st.series) || []).filter(r => r.pm25 != null).map(r => [hk(new Date(r.t).getTime()), r.pm25]));
+  if (!obs.size) return { p, ratio: null };
+  const lastH = Math.max(...obs.keys());
+  if (hk(Date.now()) - lastH > 3) return { p, ratio: null };  // station data too old to steer the forecast
+  const recent = [0, 1, 2].map(k => obs.get(lastH - k)).filter(v => v != null), o = recent.reduce((a, b) => a + b, 0) / recent.length;
+  const next = p.find(x => x.v != null && hk(x.t) > lastH && hk(x.t) <= lastH + 2);
+  if (!next) return { p, ratio: null };
+  const ratio = Math.min(3, Math.max(1 / 3, (o + 1) / (next.v + 1)));
+  if (Math.abs(Math.log(ratio)) < 0.05) return { p, ratio: null };
+  return { ratio, p: p.map(x => { if (x.v == null) return x; const dh = hk(x.t) - lastH; if (dh <= 0 || dh >= ANCHOR_FADE_H) return x;
+    const w = 1 - dh / ANCHOR_FADE_H; return { ...x, v: Math.max(0, (x.v + 1) * Math.pow(ratio, w) - 1), raw: x.v }; }) };
 }
 function hourlyO3() { const n = V.noaa || {}; return blend(n.o3 && n.o3.series, "o3"); }
 function next24() {
-  const { p } = hourlyPM(), byH = new Map(p.map(x => [hk(x.t), x.v]));
+  const { p } = hourlyPM(), byH = new Map(p.map(x => [hk(x.t), x]));
   const met = new Map(((V.met && V.met.series) || []).filter(r => r.blh_m != null).map(r => [hk(new Date(r.t).getTime()), r]));
   const s = hk(Date.now());
-  return Array.from({ length: 24 }, (_, i) => ({ h: s + i, t: (s + i) * HOUR, v: byH.get(s + i), m: met.get(s + i) }));
+  return Array.from({ length: 24 }, (_, i) => { const x = byH.get(s + i); return { h: s + i, t: (s + i) * HOUR, v: x ? x.v : undefined, raw: x ? x.raw : undefined, m: met.get(s + i) }; });
 }
 function bestWorst(hours) {
   const w = [];
@@ -746,7 +765,7 @@ function renderConds() {
 function render24() {
   const host = $("h24"), bestEl = $("best"); host.textContent = ""; bestEl.textContent = "";
   host.style.cssText = "display:flex;flex-direction:column;gap:10px";
-  const hours = next24(), { src, bc } = hourlyPM();
+  const hours = next24(), { src, bc, ratio } = hourlyPM();
   if (hours.filter(x => x.v != null).length < 6) { host.appendChild(el("div", "empty", "Hourly forecast unavailable right now.")); return; }
   hours.forEach(x => { x.aqi = pmAqi(x.v); });
   const max = Math.max(60, ...hours.map(x => x.aqi ?? 0)) * 1.06;
@@ -760,7 +779,8 @@ function render24() {
     if (x.v != null) { const b = el("div", "b"); b.style.height = Math.max(4, x.aqi / max * 100) + "%"; b.style.setProperty("--c", qv(c.i)); col.appendChild(b); }
     const show = () => { const r = col.getBoundingClientRect(), rows = [];
       grid.querySelectorAll(".hr.sel").forEach(e => e.classList.remove("sel")); col.classList.add("sel");
-      if (x.v != null) { rows.push({ dot: qv(c.i), label: c.short, value: `AQI ${x.aqi}` }); rows.push({ label: "PM2.5", value: `${r1(x.v)} µg/m³` }); }
+      if (x.v != null) { rows.push({ dot: qv(c.i), label: c.short, value: `AQI ${x.aqi}` }); rows.push({ label: "PM2.5", value: `${r1(x.v)} µg/m³` });
+        if (x.raw != null && Math.abs(x.raw - x.v) >= 0.5) rows.push({ label: "Model before adjusting", value: `${r1(x.raw)} µg/m³` }); }
       const ci = ciOf(x.m); if (ci != null) rows.push({ label: "Clearing Index, est.", value: `${ciFmt(ci)} · ${ciCat(ci)[2]}` });
       if (x.m && x.m.wind_mph != null) rows.push({ label: "Wind", value: `${Math.round(x.m.wind_mph)} mph` });
       showTip(r.left + r.width / 2, r.top + 20, (i === 0 ? "Now · " : "") + fDH(d), rows); };
@@ -774,7 +794,7 @@ function render24() {
   if (best) { const u = el("i"); u.style.gridColumn = `${best.i + 1} / span 2`; under.appendChild(u); }
   mix.setAttribute("aria-hidden", "true"); under.setAttribute("aria-hidden", "true");
   const foot = el("div", "foot small"), sw = el("span", "sw"); sw.append(el("i"), "Trapped air"); foot.appendChild(sw);
-  $("i24").dataset.info = `Bars are AQI from the hourly PM2.5 forecast (${src === "NOAA" ? "NOAA" + (bc ? ", bias-corrected" : "") : src === "CAMS" ? "CAMS" : "NOAA, gaps filled by CAMS"}). Taller is worse; color is the AQI category. The darker pair is the best 2-hour window between 6 AM and 8 PM. The strip underneath is trapped air: darker means less mixing. Tap a bar for details.`;
+  $("i24").dataset.info = `Bars are AQI from the hourly PM2.5 forecast (${src === "NOAA" ? "NOAA" + (bc ? ", bias-corrected" : "") : src === "CAMS" ? "CAMS" : "NOAA, gaps filled by CAMS"}). ${ratio ? `The first hours are adjusted toward what the station is measuring now (the model was running ${ratio < 1 ? Math.round(1 / ratio * 10) / 10 + "× high" : Math.round(ratio * 10) / 10 + "× low"}), fading back to the model over 12 hours. ` : ""}Taller is worse; color is the AQI category. The darker pair is the best 2-hour window between 6 AM and 8 PM. The strip underneath is trapped air: darker means less mixing. Tap a bar for details.`;
   host.append(grid, under, mix, axis, foot);
 }
 
