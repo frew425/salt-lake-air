@@ -84,7 +84,7 @@ h1, h2, h3, p { margin: 0; }
 
 /* ------------------------------------------------------------------ hero */
 .hero { display: flex; flex-direction: column; gap: 10px; margin-top: 6px; }
-.h-sub { font-size: 13px; color: var(--fg-2); }
+.stn-t { margin-left: 2px; font-size: 13px; color: var(--fg-2); white-space: nowrap; }
 .h-cat { display: flex; align-items: center; gap: 14px; }
 .h-cat .dot { width: 14px; height: 14px; }
 .h-cat h1 { font-size: 76px; font-weight: 500; letter-spacing: -.045em; line-height: .95; }
@@ -272,7 +272,7 @@ dialog#fb { max-width: 560px; }
 <div class="wrap">
   <div class="top">
     <a class="wm" href="./"><svg class="mark" viewBox="150 190 724 684" aria-hidden="true"><circle class="d0" cx="232" cy="792" r="62"/><circle class="d0" cx="372" cy="792" r="62"/><circle class="d0" cx="512" cy="792" r="62"/><circle class="d0" cx="652" cy="792" r="62"/><circle class="d0" cx="792" cy="792" r="62"/><circle class="d1" cx="232" cy="652" r="52"/><circle class="d1" cx="372" cy="652" r="52"/><circle class="d1" cx="512" cy="652" r="52"/><circle class="d1" cx="652" cy="652" r="52"/><circle class="d1" cx="792" cy="652" r="52"/><circle class="d2" cx="232" cy="512" r="40"/><circle class="d2" cx="372" cy="512" r="40"/><circle class="d2" cx="512" cy="512" r="40"/><circle class="d2" cx="652" cy="512" r="40"/><circle class="d2" cx="792" cy="512" r="40"/><circle class="d3" cx="232" cy="372" r="28"/><circle class="d3" cx="372" cy="372" r="28"/><circle class="d3" cx="512" cy="372" r="28"/><circle class="d3" cx="652" cy="372" r="28"/><circle class="d3" cx="792" cy="372" r="28"/><circle class="d4" cx="232" cy="232" r="16"/><circle class="d4" cx="372" cy="232" r="16"/><circle class="d4" cx="512" cy="232" r="16"/><circle class="d4" cx="652" cy="232" r="16"/><circle class="d4" cx="792" cy="232" r="16"/></svg><span class="nm">Salt Lake <span class="air">Air</span></span></a>
-    <div class="stn-w"><button class="stn" id="stn-btn" type="button" aria-haspopup="dialog" aria-label="Change station"><svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 14.2s4.4-3.9 4.4-7.6a4.4 4.4 0 1 0-8.8 0c0 3.7 4.4 7.6 4.4 7.6z"/><circle cx="8" cy="6.6" r="1.6"/></svg><span class="n" id="stn-n">Station</span><span class="a" id="stn-a"></span><svg viewBox="0 0 12 12" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 4.5 6 8l3.500-3.500"/></svg></button><button class="info" id="istn" type="button" aria-label="Why a station, not your location"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" aria-hidden="true"><circle cx="8" cy="8" r="6.2"/><path d="M8 7.4v3.4"/><circle cx="8" cy="5.1" r=".5" fill="currentColor"/></svg></button></div>
+    <div class="stn-w"><button class="stn" id="stn-btn" type="button" aria-haspopup="dialog" aria-label="Change station"><svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 14.2s4.4-3.9 4.4-7.6a4.4 4.4 0 1 0-8.8 0c0 3.7 4.4 7.6 4.4 7.6z"/><circle cx="8" cy="6.6" r="1.6"/></svg><span class="n" id="stn-n">Station</span><span class="a" id="stn-a"></span><svg viewBox="0 0 12 12" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 4.5 6 8l3.500-3.500"/></svg></button><button class="info" id="istn" type="button" aria-label="Why a station, not your location"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" aria-hidden="true"><circle cx="8" cy="8" r="6.2"/><path d="M8 7.4v3.4"/><circle cx="8" cy="5.1" r=".5" fill="currentColor"/></svg></button><span class="stn-t" id="stn-t"></span></div>
     <div class="top-r"><span id="updated">Loading</span>
       <button class="icon-btn" id="share" type="button" aria-label="Share a link to this view" style="margin-right: -8px"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 10V2.200M5.200 4.800 8 2l2.800 2.800M3.500 8v4.800c0 .5.4.9.9.9h7.200c.5 0 .9-.4.9-.9V8"/></svg></button>
       <button class="icon-btn" id="reload" type="button" aria-label="Refresh"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><path d="M13.5 8a5.5 5.5 0 1 1-1.6-3.9"/><path d="M13.5 2.5v3h-3"/></svg></button>
@@ -355,6 +355,7 @@ dialog#fb { max-width: 560px; }
         <p><b>Official versus estimated.</b> The Inversion tile and the solid steps on the Inversion chart are the official NWS daily values. The hourly strip and the dashed line are this page's own estimate from model mixing height and wind about 80 m up. That wind is weaker than the NWS transport wind, so each day is scaled to match the official afternoon value: the model gives the shape through the day, NWS sets the level.</p>
         <p><b>Best time outside.</b> The two-hour window with the lowest forecast PM2.5 that starts between 6 AM and 8 PM.</p>
         <p><b>Smoke and ozone levels.</b> Smoke is Light from 2 µg/m³, Moderate from 10 and Heavy from 35. Ozone is Moderate from 55 ppb, High from 71 and Very high from 86.</p>
+        <p><b>Visit counts.</b> Anonymous counts of visits and taps, such as which station or chart is picked, go to GoatCounter. It uses no cookies and keeps nothing that identifies you.</p>
         <p><b>Updates.</b> Data refreshes once an hour. If a source fails, the last good copy is kept while it still covers the hours ahead, and the failure is listed under Status.</p>
         <p><b>A caution.</b> Models tend to under-predict deep inversions. Trust Utah DAQ for whether it's a bad day, and the hourly lines for when.</p>
       </div>
@@ -553,7 +554,7 @@ document.addEventListener("click", e => { const b = e.target.closest(".info"); i
   tip.style.top = (r.bottom + 8 + h > innerHeight ? r.top - h - 8 : r.bottom + 8) + "px"; });
 
 /* ============================================================ data access */
-let D = null, METRIC = "pm";
+let D = null, METRIC = "pm", TRACKED = false;
 const home = () => (D.stations || []).find(s => s.id === SEL) || null;
 // NOAA where it has the hour, CAMS fills any gaps
 function blend(noaaSeries, camsKey) {
@@ -617,6 +618,7 @@ const store = { get() { try { return localStorage.getItem("sla-station"); } catc
 // A shared link (?station=) wins over the saved choice, except when launched from the home screen,
 // where the saved choice wins so an old link baked into the icon can't override a later pick.
 const standalone = (window.matchMedia && matchMedia("(display-mode: standalone)").matches) || navigator.standalone === true;
+const STORED0 = store.get();  // saved station before this visit, to tell a shared link from a reload
 let WANT = standalone ? (store.get() || qs.get("station")) : (qs.get("station") || store.get());
 let FIRST = !WANT, SEL = null, V = {}, NOTE = "", PICK = null, PCOUNTY = "slc";
 if (CHART[qs.get("chart")]) METRIC = CHART[qs.get("chart")];
@@ -687,7 +689,7 @@ function drawPicker() {
   const p = D.stations.find(s => s.id === PICK), use = $("pk-use"); use.textContent = p ? `Use ${p.name}` : "Choose a station"; use.disabled = !p;
 }
 function closePicker(save) {
-  if (save && PICK) { WANT = PICK; store.set(PICK); }
+  if (save && PICK) { WANT = PICK; store.set(PICK); track(`station-picked/${PICK}`, "Station picked"); }
   else if (FIRST && SEL) store.set(SEL);  // dismissed on a first visit: keep the default so the picker doesn't reopen every time
   FIRST = false; picker.close(); if (save) renderAll();
 }
@@ -696,6 +698,16 @@ $("pk-x").addEventListener("click", () => closePicker(false));
 $("pk-use").addEventListener("click", () => closePicker(true));
 picker.addEventListener("click", e => { if (e.target === picker) closePicker(false); });
 picker.addEventListener("cancel", e => { e.preventDefault(); closePicker(false); });
+
+/* ============================================================ usage counts (GoatCounter events, anonymous) */
+const GCQ = [];
+function track(path, title) {
+  const gc = window.goatcounter;
+  if (gc && gc.count) { try { gc.count({ path, title: title || path, event: true }); } catch (e) {} }
+  else if (GCQ.length < 20) GCQ.push([path, title]);
+}
+addEventListener("load", () => { const flush = () => { while (GCQ.length && window.goatcounter && goatcounter.count) track(...GCQ.shift()); };
+  const js = document.getElementById("gc-js"); flush(); if (js && GCQ.length) js.addEventListener("load", flush); });
 
 /* ============================================================ feedback
    Posts to the owner's Google Form; answers land in a linked Google Sheet. No server, no accounts.
@@ -743,6 +755,7 @@ $("fb-form").addEventListener("submit", async e => {
     // Google doesn't let pages read its reply, so a request that leaves the browser counts as sent.
     await fetch(`https://docs.google.com/forms/d/e/${FEEDBACK.form}/formResponse`, { method: "POST", mode: "no-cors", body });
     try { localStorage.setItem("sla-fb-at", String(Date.now())); } catch (x) {}
+    track(`feedback/${document.querySelector('input[name="fb-type"]:checked').value.toLowerCase().replace(/ /g, "-")}`, "Feedback sent");
     $("fb-msg").value = ""; $("fb-body").hidden = true; $("fb-done").hidden = false;
   } catch (x) { err.textContent = "Couldn't send. Check your connection and try again."; $("fb-send").disabled = false; }
 });
@@ -751,6 +764,7 @@ function flash(btn, text) { tip.textContent = text; tip.classList.add("on", "not
   tip.style.left = Math.max(12, Math.min(r.left + r.width / 2 - w / 2, innerWidth - w - 12)) + "px"; tip.style.top = r.bottom + 8 + "px"; setTimeout(hideTip, 2200); }
 $("share").addEventListener("click", async e => {
   syncUrl(); const btn = e.currentTarget, url = location.href, st = home();
+  track("share", "Share tapped");
   try { if (navigator.share) { await navigator.share({ title: "Salt Lake Air", text: st ? `Air quality at the ${st.name} station` : "Salt Lake Air", url }); return; } } catch (err) { if (err && err.name === "AbortError") return; }
   try { await navigator.clipboard.writeText(url); flash(btn, "Link copied"); } catch (err) { flash(btn, url); }
 });
@@ -773,13 +787,13 @@ function insightText(cat, hours) {
 function renderHero() {
   const host = $("hero"), stats = $("stats"); host.textContent = ""; stats.textContent = "";
   const st = home();
-  if (!st) { host.appendChild(el("div", "empty", "Station data unavailable right now.")); return; }
+  if (!st) { $("stn-t").textContent = ""; host.appendChild(el("div", "empty", "Station data unavailable right now.")); return; }
   const ser = st.series, rev = [...ser].reverse(), last = rev.find(r => r.pm25 != null) || rev[0];
   const nc = nowcast(ser.map(r => r.pm25)), aqi = pmAqi(nc ?? last.pm25), cat = aqiCat(aqi ?? 0), idx = cat.i - 1;
   STATE = airState(aqi, ciToday(), smokePeak(), last.pm25_24h != null && aqi != null ? aqi - pmAqi(last.pm25_24h) : 0);
   document.documentElement.dataset.q = cat.i;
 
-  host.appendChild(el("div", "h-sub", `${st.name} station · ${fHL(new Date(last.t))}`));
+  $("stn-t").textContent = `${fHL(new Date(last.t))} reading`;
   const hc = el("div", "h-cat"), h1 = el("h1", cat.name.length > 20 ? "sm" : cat.name.length > 7 ? "md" : "", cat.name);
   hc.append(dot(qv(cat.i)), h1); host.appendChild(hc);
 
@@ -1017,13 +1031,15 @@ function renderAll() {
 }
 async function load() {
   const b = $("reload"); b.classList.add("spin");
-  try { const r = await fetch("data.json?t=" + Date.now(), { cache: "no-store" }); if (!r.ok) throw new Error(r.status); D = await r.json(); normalize(); renderAll(); if (FIRST && !picker.open && D.stations.some(reporting)) openPicker(); }
+  try { const r = await fetch("data.json?t=" + Date.now(), { cache: "no-store" }); if (!r.ok) throw new Error(r.status); D = await r.json(); normalize(); renderAll();
+    if (!TRACKED) { TRACKED = true; if (SEL) track(`viewing/${SEL}`, "Station viewed"); if (standalone) track("open/home-screen", "Opened from Home Screen"); else if (qs.get("station") && qs.get("station") !== STORED0) track("open/shared-link", "Opened a shared link"); }
+    if (FIRST && !picker.open && D.stations.some(reporting)) openPicker(); }
   catch (e) { $("updated").textContent = "No data yet"; }
   finally { setTimeout(() => b.classList.remove("spin"), 350); }
 }
 const mBtns = document.querySelectorAll(".a-trend .seg button");
 const markMetric = () => mBtns.forEach(x => x.setAttribute("aria-pressed", x.dataset.m === METRIC));
-mBtns.forEach(b => b.addEventListener("click", () => { METRIC = b.dataset.m; markMetric(); renderTrend(); syncUrl(); }));
+mBtns.forEach(b => b.addEventListener("click", () => { METRIC = b.dataset.m; track(`chart/${CHART_R[METRIC]}`, "Chart tab"); markMetric(); renderTrend(); syncUrl(); }));
 markMetric();
 $("reload").addEventListener("click", load);
 let rz, lastW = innerWidth;
@@ -1034,5 +1050,10 @@ document.addEventListener("visibilitychange", () => { if (document.visibilitySta
 setInterval(() => { if (D) setUpdated(); }, 6e4);
 load();
 </script>
+<script>
+  // Anonymous, cookie-free visit counts (GoatCounter). Counted by page path only, not the ?station= link details.
+  window.goatcounter = { path: function () { return location.pathname; } };
+</script>
+<script data-goatcounter="https://saltlakeair.goatcounter.com/count" async src="https://gc.zgo.at/count.js" id="gc-js"></script>
 </body>
 </html>
