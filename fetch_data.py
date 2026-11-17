@@ -506,8 +506,12 @@ def fetch_met_all():
             return out
         except Exception as e:  # noqa: BLE001
             last = e
-            if "429" in str(e):
-                break  # rate limited: other variants hit the same server
+            # Only a rejected request (HTTP 400) or unusable data is worth retrying with a different
+            # variant. Timeouts, rate limits and server errors would hit every variant the same way,
+            # and retrying them burns the run's time budget that NOAA still needs.
+            msg = str(e)
+            if not ("HTTP Error 400" in msg or "all null" in msg or "expected" in msg):
+                break
     record_error("Mixing height / Open-Meteo weather", last)
     return {z: None for z in ZONE_IDS}
 
