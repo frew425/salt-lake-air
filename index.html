@@ -118,11 +118,24 @@ h1, h2, h3, p { margin: 0; }
 .hero .note { margin: -2px 0 0; font-size: 14px; line-height: 1.5; color: var(--fg-2); }
 .stats { display: grid; grid-template-columns: repeat(5, minmax(0,1fr)); gap: 8px; padding-top: 16px; border-top: 1px solid var(--line); }
 .stat .k { font-size: 12px; color: var(--fg-2); }
+.wx { grid-column: 1 / -1; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 6px; font-size: 14px; color: var(--fg-15); }
+.wx svg, .wxi svg, .wd svg { width: 18px; height: 18px; flex: none; }
+.wx b { font-weight: 600; color: var(--fg); }
+.wx .sep { color: var(--fg-2); }
+.alert { display: flex; align-items: center; gap: 8px; width: fit-content; max-width: 100%; margin-bottom: 14px; padding: 7px 12px 7px 10px; border-radius: 10px;
+  background: color-mix(in srgb, var(--q2) 16%, transparent); color: var(--fg); font-size: 13px; font-weight: 500; text-decoration: none; }
+.alert svg { width: 16px; height: 16px; flex: none; color: var(--q3); }
+.alert span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wxi { display: flex; justify-content: center; margin-bottom: 3px; color: var(--fg-2); }
+.wxi svg { width: 14px; height: 14px; }
+.wx .wet { display: inline-flex; align-items: center; gap: 6px; flex-basis: 100%; }
+.wd { display: flex; align-items: center; flex-wrap: wrap; gap: 2px 5px; font-size: 13px; color: var(--fg-15); }
+.wd .pp { flex-basis: 100%; color: var(--fg-2); }
 .stat .v { font-size: 16px; font-weight: 500; margin-top: 2px; white-space: nowrap; }
 
 /* ------------------------------------------------------------------ 24h */
 .hours { display: grid; grid-template-columns: repeat(24, minmax(0,1fr)); gap: 3px; align-items: end; height: 104px; }
-.hr { height: 100%; display: flex; align-items: flex-end; cursor: pointer; }
+.hr { height: 100%; display: flex; flex-direction: column; justify-content: flex-end; cursor: pointer; }
 .hr .b { width: 100%; min-height: 4px; border-radius: 2px; background: var(--c); opacity: .55; }
 .hr.best .b, .hr.sel .b { opacity: 1; }
 .under, .mixrow { display: grid; grid-template-columns: repeat(24, minmax(0,1fr)); gap: 3px; }
@@ -271,7 +284,7 @@ dialog#fb { max-width: 560px; }
   .h-cat h1.md { font-size: clamp(52px, 4.4vw, 72px); }
   .aqi .num { font-size: clamp(60px, 4.8vw, 80px); }
   .insight { font-size: clamp(20px, 1.5vw, 24px); }
-  .stats { grid-template-columns: repeat(3, minmax(0, 1fr)); row-gap: 16px; }
+  .stats { row-gap: 16px; }
   .hours { height: clamp(120px, 11vw, 170px); }
   .a-trend .seg { max-width: 420px; }
   dialog.sheet { margin: auto; border-radius: 20px; max-height: 80vh; }
@@ -367,6 +380,7 @@ dialog#fb { max-width: 560px; }
         <p><b>Official versus estimated.</b> The Inversion tile and the solid steps on the Inversion chart are the official NWS daily values. The hourly strip and the dashed line are this page's own estimate from model mixing height and wind about 80 m up. That wind is weaker than the NWS transport wind, so each day is scaled to match the official afternoon value: the model gives the shape through the day, NWS sets the level.</p>
         <p><b>Best time outside.</b> The two-hour window with the lowest forecast PM2.5 that starts between 6 AM and 8 PM.</p>
         <p><b>Smoke and ozone levels.</b> Smoke is Light from 2 µg/m³, Moderate from 10 and Heavy from 35. Ozone is Moderate from 55 ppb, High from 71 and Very high from 86.</p>
+        <p><b>Weather.</b> Conditions, highs and lows, and rain or snow chances come from the GFS weather model through Open-Meteo. Alerts like winter storm warnings or air quality alerts come straight from the National Weather Service. A storm or strong wind is usually what clears an inversion, so when one is likely in the next few days the page says so.</p>
         <p><b>Visit counts.</b> Anonymous counts of visits and taps, such as which station or chart is picked, go to GoatCounter. It uses no cookies and keeps nothing that identifies you.</p>
         <p><b>Updates.</b> Data refreshes once an hour. If a source fails, the last good copy is kept while it still covers the hours ahead, and the failure is listed under Status.</p>
         <p><b>A caution.</b> Models tend to under-predict deep inversions. Trust Utah DAQ for whether it's a bad day, and the hourly lines for when.</p>
@@ -796,6 +810,71 @@ function insightText(cat, hours) {
   return parts;
 }
 
+/* ============================================================ weather (Open-Meteo, NWS alerts) */
+const WI = {
+  sun: '<circle cx="8" cy="8" r="2.8"/><path d="M8 1.6v1.4M8 13v1.4M1.6 8H3M13 8h1.4M3.5 3.5l1 1M11.5 11.5l1 1M3.5 12.5l1-1M11.5 4.5l1-1"/>',
+  moon: '<path d="M12.8 10.2A5.4 5.4 0 0 1 5.8 3.2a5.4 5.4 0 1 0 7 7z"/>',
+  part: '<path d="M6 2.2v1M2.7 3.6l.7.7M1.6 7h1M8.8 4.3l.7-.7"/><path d="M4.1 7.6a2.4 2.4 0 0 1 4.4-1.7"/><path d="M5.2 13.6h6.3a2.4 2.4 0 0 0 .2-4.8 3.3 3.3 0 0 0-6.4.5 2.2 2.2 0 0 0-.1 4.3z"/>',
+  cloud: '<path d="M4.6 12.6h7a2.8 2.8 0 0 0 .3-5.6 3.9 3.9 0 0 0-7.5.7 2.5 2.5 0 0 0 .2 4.9z"/>',
+  fog: '<path d="M2.5 6h11M2.5 8.6h11M4 11.2h8"/>',
+  rain: '<path d="M4.6 9.6h7a2.6 2.6 0 0 0 .3-5.2 3.7 3.7 0 0 0-7.1.6 2.3 2.3 0 0 0-.2 4.6z"/><path d="M5.5 11.5l-.7 1.8M8.3 11.5l-.7 1.8M11.1 11.5l-.7 1.8"/>',
+  snow: '<path d="M4.6 9.2h7a2.6 2.6 0 0 0 .3-5.2 3.7 3.7 0 0 0-7.1.6 2.3 2.3 0 0 0-.2 4.6z"/><path d="M5.4 11.6h.01M8 12.6h.01M10.6 11.6h.01M6.7 14h.01M9.3 14h.01" stroke-width="2"/>',
+  storm: '<path d="M4.6 9h7a2.6 2.6 0 0 0 .3-5.2 3.7 3.7 0 0 0-7.1.6 2.3 2.3 0 0 0-.2 4.6z"/><path d="M8.6 9.6l-1.6 2.6h2l-1.4 2.4"/>',
+  warn: '<path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.6v3"/><path d="M8 11.6h.01" stroke-width="2"/>',
+};
+// WMO weather codes, as Open-Meteo reports them
+function wxOf(code, day = 1) {
+  const c = code == null ? -1 : code;
+  if (c === 0) return [day ? "sun" : "moon", "Clear"];
+  if (c === 1) return [day ? "part" : "moon", "Mostly clear"];
+  if (c === 2) return [day ? "part" : "cloud", "Partly cloudy"];
+  if (c === 3) return ["cloud", "Cloudy"];
+  if (c === 45 || c === 48) return ["fog", "Fog"];
+  if (c >= 51 && c <= 57) return ["rain", "Drizzle"];
+  if (c >= 61 && c <= 67) return ["rain", "Rain"];
+  if (c >= 71 && c <= 77) return ["snow", "Snow"];
+  if (c >= 80 && c <= 82) return ["rain", "Showers"];
+  if (c === 85 || c === 86) return ["snow", "Snow showers"];
+  if (c >= 95) return ["storm", "Thunderstorms"];
+  return [null, ""];
+}
+const wIcon = k => { const sv = S("svg", { viewBox: "0 0 16 16", fill: "none", stroke: "currentColor", "stroke-width": 1.4, "stroke-linecap": "round", "stroke-linejoin": "round", "aria-hidden": "true" }); sv.innerHTML = WI[k] || ""; return sv; };
+const isSnow = (code, tf) => (code >= 71 && code <= 77) || code === 85 || code === 86 || (tf != null && tf <= 33);
+const metSer = () => ((V.met && V.met.series) || []).map(p => ({ ...p, ms: new Date(p.t).getTime() }));
+const metDaily = () => (V.met && V.met.daily) || [];
+const ymd = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+// first day in the next three where a storm (likely precipitation or strong wind) could mix out the valley
+function stormAhead() {
+  const t = new Date(); t.setHours(0, 0, 0, 0); const today = ymd(t);
+  for (const d of metDaily()) {
+    if (d.d <= today) continue;
+    const dt = new Date(d.d + "T00:00"), days = Math.round((dt - t) / 864e5); if (days > 3) break;
+    const wet = d.precip_pct != null && d.precip_pct >= 50, windy = d.wind_max != null && d.wind_max >= 20;
+    if (wet || windy) return { day: days === 1 ? "tomorrow" : dt.toLocaleDateString([], { weekday: "long" }), kind: wet ? (isSnow(d.code, d.hi) ? "snow" : "storm") : "wind" };
+  }
+  return null;
+}
+function renderAlerts(host) {
+  const z = D.zones && D.zones[(home() || {}).zone], list = ((z && z.alerts) || []).filter(a => !a.ends || new Date(a.ends) > new Date());
+  if (!list.length) return;
+  const st = home(), a = list[0], link = el("a", "alert");
+  link.href = `https://forecast.weather.gov/MapClick.php?lat=${st.lat}&lon=${st.lon}`; link.target = "_blank"; link.rel = "noopener";
+  const when = a.ends ? ` until ${fDH(new Date(a.ends))}` : "";
+  link.append(wIcon("warn"), el("span", "", `${a.event}${when}${list.length > 1 ? ` · +${list.length - 1} more` : ""}`));
+  link.title = a.headline || a.event; host.appendChild(link);
+}
+function renderWx(stats) {
+  const ser = metSer(); if (!ser.length) return;
+  const now = Date.now(), cur = ser.reduce((b, p) => Math.abs(p.ms - now) < Math.abs(b.ms - now) ? p : b, ser[0]);
+  const [ic, word] = wxOf(cur.code, cur.day); if (!word) return;
+  const today = metDaily().find(d => d.d === ymd(new Date()));
+  const row = el("div", "wx"); row.append(wIcon(ic), el("b", "", word));
+  if (today && today.hi != null) { row.append(el("span", "sep", "·"), `High ${Math.round(today.hi)}°`, el("span", "sep", "·"), `Low ${Math.round(today.lo)}°`); }
+  const wet = ser.find(p => p.ms > now && p.ms <= now + 24 * HOUR && p.precip_pct != null && p.precip_pct >= 40);
+  if (wet) { const sn = isSnow(wet.code, wet.temp_f), w = el("span", "wet"); w.append(wIcon(sn ? "snow" : "rain"), `${sn ? "Snow" : "Rain"} likely from ${fDH(new Date(wet.t))}`); row.appendChild(w); }
+  stats.appendChild(row);
+}
+
 function renderHero() {
   const host = $("hero"), stats = $("stats"); host.textContent = ""; stats.textContent = "";
   const st = home();
@@ -804,6 +883,7 @@ function renderHero() {
   const nc = nowcast(ser.map(r => r.pm25)), aqi = pmAqi(nc ?? last.pm25), cat = aqiCat(aqi ?? 0), idx = cat.i - 1;
   STATE = airState(aqi, ciToday(), smokePeak(), last.pm25_24h != null && aqi != null ? aqi - pmAqi(last.pm25_24h) : 0);
   document.documentElement.dataset.q = cat.i;
+  renderAlerts(host);
 
   $("stn-t").textContent = `${fHL(new Date(last.t))} reading`;
   const hc = el("div", "h-cat"), h1 = el("h1", cat.name.length > 20 ? "sm" : cat.name.length > 7 ? "md" : "", cat.name);
@@ -824,7 +904,10 @@ function renderHero() {
   const ins = el("p", "insight");
   for (const [x, b, c] of insightText(cat, next24())) { ins.append(x); ins.appendChild(el("b", "", b)); ins.append(c + " "); }
   host.appendChild(ins);
-  if (STATE && STATE.note) host.appendChild(el("p", "note", STATE.note));
+  const storm = STATE && STATE.lvl >= 1 && ciToday() && ciToday().ci < 500 ? stormAhead() : null;
+  const stormNote = storm && `${storm.kind === "snow" ? "Snow" : storm.kind === "wind" ? "Strong wind" : "A storm"} ${storm.day} ${STATE.word === "Not yet" ? "should keep pollution from building up" : "could help clear the valley"}.`;
+  if (STATE && STATE.note && !(stormNote && STATE.word === "Not yet")) host.appendChild(el("p", "note", STATE.note));
+  if (stormNote) host.appendChild(el("p", "note", stormNote));
   if (NOTE) host.appendChild(el("p", "note", NOTE));
 
   const o3 = rev.find(x => x.o3 != null);
@@ -834,6 +917,7 @@ function renderHero() {
   stat("Ozone", o3 ? Math.round(o3.o3) + " ppb" : "—");
   stat("Wind", last.wind_mph != null ? Math.round(last.wind_mph) + " mph" : "—");
   stat("Temp", last.temp_f != null ? Math.round(last.temp_f) + "°F" : "—");
+  renderWx(stats);
 }
 
 /* ============================================================ forecast */
@@ -853,6 +937,11 @@ function renderDays() {
     if (m) { const c = CATS[m[1] - 1], q = el("div", "v q"); q.append(dot(qv(c.i)), c.short); t.appendChild(q);
       t.appendChild(el("div", "small", !act ? "" : act === "unrestricted" ? "No restrictions" : act[0].toUpperCase() + act.slice(1) + " action"));
     } else { t.classList.add("raw"); t.appendChild(el("div", "small", it.description)); }
+    const wd = !isNaN(dt) && metDaily().find(d => d.d === ymd(dt));
+    if (wd && wd.hi != null) { const [ic, word] = wxOf(wd.code), line = el("div", "wd"); if (ic) line.appendChild(wIcon(ic === "moon" ? "sun" : ic));
+      line.append(`${Math.round(wd.hi)}° / ${Math.round(wd.lo)}°`);
+      if (wd.precip_pct != null && wd.precip_pct >= 30) line.appendChild(el("span", "pp", `${isSnow(wd.code, wd.hi) ? "Snow" : "Rain"} ${wd.precip_pct}%`));
+      line.setAttribute("aria-label", `${word}, high ${Math.round(wd.hi)}, low ${Math.round(wd.lo)}`); t.appendChild(line); }
     host.appendChild(t);
   }
 }
@@ -903,9 +992,13 @@ function render24() {
   if (best) { bestEl.append("Best "); bestEl.appendChild(el("b", "", spanP(best.t))); }
 
   const grid = el("div", "hours"), under = el("div", "under"), mix = el("div", "mixrow"), axis = el("div", "axis");
+  const ms = metSer(), wxAt = t => { const tt = new Date(t).getTime(); return ms.find(p => Math.abs(p.ms - tt) < HOUR / 2); };
+
   grid.setAttribute("role", "img"); grid.setAttribute("aria-label", "Hourly AQI forecast for the next 24 hours" + (best ? `, lowest around ${spanP(best.t)}` : ""));
   hours.forEach((x, i) => {
     const d = new Date(x.t), c = pmCat(x.v), col = el("div", "hr" + (best && (i === best.i || i === best.i + 1) ? " best" : ""));
+    const w0 = wxAt(x.t);
+    if (w0 && w0.precip_pct != null && w0.precip_pct >= 40) { const wc = el("div", "wxi"); wc.setAttribute("aria-hidden", "true"); wc.appendChild(wIcon(isSnow(w0.code, w0.temp_f) ? "snow" : "rain")); col.appendChild(wc); }
     if (x.v != null) { const b = el("div", "b"); b.style.height = Math.max(4, x.aqi / max * 100) + "%"; b.style.setProperty("--c", qv(c.i)); col.appendChild(b); }
     const show = () => { const r = col.getBoundingClientRect(), rows = [];
       grid.querySelectorAll(".hr.sel").forEach(e => e.classList.remove("sel")); col.classList.add("sel");
@@ -913,12 +1006,14 @@ function render24() {
         if (x.raw != null && Math.abs(x.raw - x.v) >= 0.5) rows.push({ label: "Model before adjusting", value: `${r1(x.raw)} µg/m³` }); }
       const ci = ciOf(x.m); if (ci != null) rows.push({ label: "Clearing Index, est.", value: `${ciFmt(ci)} · ${ciCat(ci)[2]}` });
       if (x.m && x.m.wind_mph != null) rows.push({ label: "Wind", value: `${Math.round(x.m.wind_mph)} mph` });
+      const w = wxAt(x.t); if (w) { const [, wd] = wxOf(w.code, w.day); if (wd || w.temp_f != null) rows.push({ label: wd || "Weather", value: [w.temp_f != null ? Math.round(w.temp_f) + "°F" : "", w.precip_pct ? `${w.precip_pct}% ${isSnow(w.code, w.temp_f) ? "snow" : "rain"}` : ""].filter(Boolean).join(" · ") || "—" }); }
       showTip(r.left + r.width / 2, r.top + 20, (i === 0 ? "Now · " : "") + fDH(d), rows); };
     col.addEventListener("pointerenter", e => { if (e.pointerType === "mouse") show(); });
     col.addEventListener("pointerleave", e => { if (e.pointerType === "mouse") { hideTip(); col.classList.remove("sel"); } });
     col.addEventListener("click", show);
     grid.appendChild(col);
     const mi = el("i"); mi.style.opacity = mixOp(ciOf(x.m)); mix.appendChild(mi);
+
     if (i % 3 === 0) axis.appendChild(el("div", i === 0 ? "now" : "", i === 0 ? "Now" : fH(d)));
   });
   if (best) { const u = el("i"); u.style.gridColumn = `${best.i + 1} / span 2`; under.appendChild(u); }

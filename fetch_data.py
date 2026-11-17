@@ -462,15 +462,19 @@ def fetch_cams_all():
 def fetch_met_all():
     base = "https://api.open-meteo.com/v1/forecast"
     params = {
-        "hourly": "boundary_layer_height,wind_speed_10m,wind_speed_80m,temperature_2m,precipitation_probability",
+        "hourly": "boundary_layer_height,wind_speed_10m,wind_speed_80m,temperature_2m,precipitation_probability,weather_code,is_day",
+        "daily": "weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,snowfall_sum,wind_speed_10m_max",
         "timezone": "America/Denver", "past_days": 1, "forecast_days": 4,
-        "wind_speed_unit": "mph", "temperature_unit": "fahrenheit",
+        "wind_speed_unit": "mph", "temperature_unit": "fahrenheit", "precipitation_unit": "inch",
     }
     plain = dict(params, hourly=params["hourly"].replace("wind_speed_80m,", ""))
     last = None
     # 80 m wind is closer to the transport wind used by the Clearing Index; if a
     # model does not serve it, fall back to the original request.
-    for prm, model in ((params, "gfs_seamless"), (plain, "gfs_seamless"), (params, None)):
+    # Last resort: drop the daily weather and weather codes, so a problem with those never costs the mixing height.
+    bare = {k: v for k, v in plain.items() if k != "daily"}
+    bare["hourly"] = bare["hourly"].replace(",weather_code,is_day", "")
+    for prm, model in ((params, "gfs_seamless"), (plain, "gfs_seamless"), (params, None), (bare, "gfs_seamless")):
         try:
             got = openmeteo_all(base, dict(prm, models=model) if model else prm)
             out = {}
@@ -481,13 +485,23 @@ def fetch_met_all():
                 n = len(h["time"])
                 precip = h.get("precipitation_probability") or [None] * n
                 wind80 = h.get("wind_speed_80m") or [None] * n
-                out[zid] = {"model": model or "best match", "series": [{
+                code = h.get("weather_code") or [None] * n
+                isday = h.get("is_day") or [None] * n
+                dl = data.get("daily") or {}
+                col = lambda k: dl.get(k) or [None] * len(dl.get("time") or [])  # noqa: E731
+                daily = [{"d": d, "code": c, "hi": hi, "lo": lo, "precip_pct": pp, "snow_in": sn, "wind_max": wm}
+                         for d, c, hi, lo, pp, sn, wm in zip(dl.get("time") or [], col("weather_code"), col("temperature_2m_max"),
+                                                             col("temperature_2m_min"), col("precipitation_probability_max"),
+                                                             col("snowfall_sum"), col("wind_speed_10m_max"))]
+                out[zid] = {"model": model or "best match", "daily": daily, "series": [{
                     "t": iso(datetime.fromisoformat(t).replace(tzinfo=TZ)),
                     "blh_m": h["boundary_layer_height"][i],
                     "wind_mph": h["wind_speed_10m"][i],
                     "wind80_mph": wind80[i],
                     "temp_f": h["temperature_2m"][i],
                     "precip_pct": precip[i],
+                    "code": code[i],
+                    "day": isday[i],
                 } for i, t in enumerate(h["time"])]}
             return out
         except Exception as e:  # noqa: BLE001
@@ -496,6 +510,29 @@ def fetch_met_all():
                 break  # rate limited: other variants hit the same server
     record_error("Mixing height / Open-Meteo weather", last)
     return {z: None for z in ZONE_IDS}
+
+
+# ----------------------------------------------------------- NWS alerts ----
+def fetch_alerts():
+    """Active National Weather Service alerts (winter storm, wind, air quality...) for each zone's point."""
+    out = {}
+    for zid, z in ZONES.items():
+        try:
+            data = json.loads(get("https://api.weather.gov/alerts/active", {"point": f"{z['lat']},{z['lon']}"}))
+            seen, items = set(), []
+            for f in data.get("features", []):
+                p = f.get("properties") or {}
+                key = (p.get("event"), p.get("ends") or p.get("expires"))
+                if not p.get("event") or key in seen:
+                    continue
+                seen.add(key)
+                items.append({"event": p["event"], "headline": p.get("headline"), "severity": p.get("severity"),
+                              "ends": p.get("ends") or p.get("expires")})
+            out[zid] = items
+        except Exception as e:  # noqa: BLE001
+            record_error(f"NWS alerts ({zid})", e)
+            out[zid] = None
+    return out
 
 
 # --------------------------------------------------------- Clearing Index ----
@@ -636,8 +673,9 @@ def main():
     }
     cams = fetch_cams_all()
     met = fetch_met_all()
+    alerts = fetch_alerts()
     noaa = fetch_noaa(now)  # slowest source goes last
-    data["zones"] = {zid: dict(z, cams=cams[zid], met=met[zid], noaa=noaa[zid]) for zid, z in ZONES.items()}
+    data["zones"] = {zid: dict(z, cams=cams[zid], met=met[zid], noaa=noaa[zid], alerts=alerts[zid]) for zid, z in ZONES.items()}
     reuse_previous(data, now)
     calibrate_cams(data)
     data["errors"] = errors
