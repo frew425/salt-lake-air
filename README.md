@@ -28,7 +28,7 @@ Everything on the page follows the station a visitor picks. The choice is saved 
 ## Link parameters
 
 - `?station=cv` opens on a station: `slc` Hawthorne, `rp` Rose Park, `ut` Utah Tech Center, `lp` West Valley, `nr` Near Road, `cv` Copper View, `ln` Lindon, `sf` Spanish Fork.
-- `&chart=ozone` or `&chart=inversion` opens the 3-day outlook on that tab.
+- `&chart=ozone` opens the 3-day outlook on the ozone tab. Older links with `&chart=inversion` still work and open the PM2.5 tab; the inversion outlook now lives in the valley section with its own 3-day slider.
 
 A link's station is used for that visit only; it does not replace the visitor's saved choice. The share button in the header copies a link to the current view.
 
