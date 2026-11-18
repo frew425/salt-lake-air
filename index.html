@@ -360,7 +360,7 @@ dialog#fb { max-width: 560px; }
 .rl.spin svg { animation: spin .6s linear; } @keyframes spin { to { transform: rotate(360deg); } }
 .aqi { margin-top: 10px; }
 @media (max-width: 999px) { .hmeta { order: 1; } .a-valley { order: 3; } }
-@media (min-width: 1000px) { .a-valley .valley, .vctl, .vcap, .vwhen { max-width: 560px; } }
+@media (min-width: 1000px) { .vcap { max-width: 70ch; } }
 .vwhen { font-size: 13px; font-weight: 600; color: var(--fg); margin-bottom: 2px; }
 .vctl { position: relative; margin-top: 8px; padding-bottom: 18px; }
 .vstrip { display: flex; gap: 1px; height: 6px; border-radius: 3px; overflow: hidden; }
@@ -1043,7 +1043,7 @@ function renderValley() {
     const ciTxt = ci == null ? "" : `Clearing Index ${ci >= 1000 ? "1,000+" : (off || isNow) && !(isNow && !ciToday().official) ? ci.toLocaleString() : "about " + ciFmt(ci)} · ${ciCat(ci)[2]}`;
     $("vmeta").textContent = ciTxt;
     when.textContent = isNow ? "Now" : fDH(d);
-    fig.innerHTML = valleySvg(trapped, ft, col);
+    fig.innerHTML = valleySvg(trapped, ft, col, Math.max(300, Math.round(host.clientWidth || 354)));
     fig.classList.toggle("open", !trapped);
     cap.textContent = "";
     if (isNow) { const word = STATE ? STATE.word : ciCat(ci)[0];
@@ -1056,19 +1056,22 @@ function renderValley() {
   slider.addEventListener("input", () => draw(+slider.value));
   host.append(when, fig, ctl, cap); draw(0);
 }
-function valleySvg(trapped, ft, col) {
-  const W = 354, H = 150, g = 126, top = 14, scale = f => g - Math.sqrt(Math.min(f, 7000) / 7000) * (g - top); // square root, so low lids stay visible
-  const oq = `0,52 14,46 30,58 44,48 60,74 78,98 96,118 104,${g} 0,${g}`, wa = `232,${g} 246,104 262,76 276,60 290,30 306,40 318,22 334,34 354,26 354,${g}`;
+function valleySvg(trapped, ft, col, W = 354) {
+  const H = 150, g = 126, top = 14, scale = f => g - Math.sqrt(Math.min(f, 7000) / 7000) * (g - top); // square root, so low lids stay visible
+  // mountains keep their shape at each edge; the valley floor stretches with the screen
+  const k = Math.min(1.8, Math.sqrt(W / 354)), L = x => x * k, Rt = x => W - (354 - x) * k, C = W / 2;
+  const oq = [[0,52],[14,46],[30,58],[44,48],[60,74],[78,98],[96,118],[104,g],[0,g]].map(([x, y]) => `${L(x)},${y}`).join(" ");
+  const wa = [[232,g],[246,104],[262,76],[276,60],[290,30],[306,40],[318,22],[334,34],[354,26],[354,g]].map(([x, y]) => `${Rt(x)},${y}`).join(" ");
   const st = home(), ftR = Math.max(100, Math.round(ft / 100) * 100);
   let svg = `<svg viewBox="0 0 ${W} ${H}" class="vsvg" role="img" aria-label="${trapped ? `A lid of warm air about ${ftR} feet up traps pollution near the valley floor` : "No lid; air is mixing"}">`;
   if (trapped) { const y = scale(ft);
     svg += `<rect x="0" y="${y.toFixed(1)}" width="${W}" height="${(g - y).toFixed(1)}" fill="${col}" opacity=".22"/>`;
-    svg += Array.from({ length: 26 }, (_, i) => `<circle cx="${(i * 37) % 330 + 12}" cy="${(y + 5 + (i * 13) % Math.max(4, g - y - 9)).toFixed(1)}" r="1.4" fill="${col}" opacity=".75"/>`).join("");
+    svg += Array.from({ length: Math.round(26 * W / 354) }, (_, i) => `<circle cx="${(i * 37) % (W - 24) + 12}" cy="${(y + 5 + (i * 13) % Math.max(4, g - y - 9)).toFixed(1)}" r="1.4" fill="${col}" opacity=".75"/>`).join("");
     svg += `<polygon points="${oq}" class="mtn"/><polygon points="${wa}" class="mtn"/><line x1="0" x2="${W}" y1="${y.toFixed(1)}" y2="${y.toFixed(1)}" class="lid"/>`;
-    svg += `<text x="177" y="${(y - 7).toFixed(1)}" text-anchor="middle" class="vl">Lid about ${ftR.toLocaleString()} ft up</text>`;
-  } else svg += `<polygon points="${oq}" class="mtn"/><polygon points="${wa}" class="mtn"/><path d="M150 46c8-10 18-10 26 0M176 38c8-10 18-10 26 0" class="vw"/><text x="177" y="22" text-anchor="middle" class="vl">No lid · air is mixing</text>`;
-  svg += `<line x1="0" x2="${W}" y1="${g}" y2="${g}" class="floor"/><circle cx="168" cy="${g}" r="4.5" fill="${col}" stroke="var(--bg)" stroke-width="2"/>`;
-  return svg + `<text x="168" y="${g + 17}" text-anchor="middle" class="vs">${st ? st.name : ""}</text><text x="6" y="${g + 17}" class="vs">Oquirrhs</text><text x="348" y="${g + 17}" text-anchor="end" class="vs">Wasatch</text></svg>`;
+    svg += `<text x="${C}" y="${(y - 7).toFixed(1)}" text-anchor="middle" class="vl">Lid about ${ftR.toLocaleString()} ft up</text>`;
+  } else svg += `<polygon points="${oq}" class="mtn"/><polygon points="${wa}" class="mtn"/><path d="M${C - 27} 46c8-10 18-10 26 0M${C - 1} 38c8-10 18-10 26 0" class="vw"/><text x="${C}" y="22" text-anchor="middle" class="vl">No lid · air is mixing</text>`;
+  svg += `<line x1="0" x2="${W}" y1="${g}" y2="${g}" class="floor"/><circle cx="${C - 9}" cy="${g}" r="4.5" fill="${col}" stroke="var(--bg)" stroke-width="2"/>`;
+  return svg + `<text x="${C - 9}" y="${g + 17}" text-anchor="middle" class="vs">${st ? st.name : ""}</text><text x="6" y="${g + 17}" class="vs">Oquirrhs</text><text x="${W - 6}" y="${g + 17}" text-anchor="end" class="vs">Wasatch</text></svg>`;
 }
 
 /* ============================================================ forecast */
