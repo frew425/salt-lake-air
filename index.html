@@ -747,6 +747,8 @@ if (CHART[qs.get("chart")]) METRIC = CHART[qs.get("chart")];
 if (METRIC === "mix") METRIC = "pm";  // old links: the inversion chart now lives in the valley section
 
 function normalize() {
+  // DAQ uses -9999 for a missing reading; treat any such value as no data (also cleans files written before the script fix)
+  for (const st of D.stations || []) for (const r of st.series || []) for (const k in r) if (typeof r[k] === "number" && r[k] <= -999) r[k] = null;
   D.stations = (D.stations || []).map(s => { const m = META[s.id] || []; return { ...s, name: m[0] || s.name, area: m[1] || s.area || "", county: s.county || m[2] || "slc", lat: s.lat ?? m[3], lon: s.lon ?? m[4] }; });
 }
 // a monitor is offered only while it has a PM2.5 reading from the last 8 hours

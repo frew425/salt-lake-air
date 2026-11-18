@@ -121,7 +121,9 @@ def fnum(x):
         s = str(x).strip()
         if s == "" or s.lower() in ("nan", "null", "none", "-"):
             return None
-        return float(s)
+        v = float(s)
+        # DAQ marks a missing or invalid reading with -9999 (seen in Nov 2026); never pass it through as data
+        return None if v <= -999 else v
     except ValueError:
         return None
 
