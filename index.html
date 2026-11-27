@@ -10,6 +10,7 @@
 <meta property="og:title" content="Salt Lake Air: Salt Lake air, explained">
 <meta property="og:description" content="Salt Lake Valley air quality, explained: hourly forecasts from your nearest Utah DAQ station, inversion status and the best time to be outside.">
 <meta property="og:url" content="https://frew425.github.io/salt-lake-air/">
+<link rel="canonical" href="https://frew425.github.io/salt-lake-air/">
 <meta property="og:image" content="https://frew425.github.io/salt-lake-air/og-image.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
@@ -394,6 +395,91 @@ dialog#fb { max-width: 560px; }
 .upd svg { width: 14px; height: 14px; }
 .upd.stale { color: var(--q3); font-weight: 600; }
 .upd.spin svg { animation: spin .6s linear; }
+
+/* ---------- v3: one-rule headings, dot visuals ---------- */
+:root { --q1t: #237a60; --q2t: #93700e; --q3t: #b05816; --q4t: #b23f3b; --q5t: #6a4bb2; --q6t: #8c4466; }
+@media (prefers-color-scheme: dark) { :root, :root[data-q] { --q1t: #4cc29d; --q2t: #e2bf55; --q3t: #f2a266; --q4t: #ec7a75; --q5t: #a993e0; --q6t: #c9709a; } }
+.wrap { gap: 28px; padding-bottom: max(24px, env(safe-area-inset-bottom)); }  /* the home-bar inset alone, not added on top of 32px */
+/* dark mode keeps one neutral background; the category shows in the number, dots and charts instead */
+@media (prefers-color-scheme: dark) { :root[data-q] { --bg: #0f1822; } }
+.sec { gap: 12px; padding-top: 22px; }
+.head { align-items: center; }
+.head h2 { font-size: 17px; font-weight: 600; letter-spacing: -.01em; text-transform: none; color: var(--fg); }
+.stats { border-top: 0; padding-top: 2px; }
+.lrow:last-child { border-bottom: 0; }
+#days .lrow:first-child, #conds .lrow:first-child { border-top: 0; }
+.a-days { order: 5; } .a-trend { order: 6; }
+/* hold space only while loading, so the page doesn't jump when the data arrives */
+#hero:has(> .empty) { min-height: 380px; } #h24:empty { min-height: 210px; } #valley:empty { min-height: 440px; } #conds:empty { min-height: 110px; } #days:empty { min-height: 190px; } #chart:empty { min-height: 250px; }
+.first, .demo { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 14px; padding: 8px 12px; border-radius: 10px; background: color-mix(in srgb, var(--fg) 5%, transparent); font-size: 13px; color: var(--fg-15); }
+.demo { background: color-mix(in srgb, var(--q3) 14%, transparent); }
+.first .lk, .demo a { font-size: 13px; font-weight: 600; white-space: nowrap; }
+h1.aqi { font-size: 14px; font-weight: 400; }
+/* dot scales: AQI in the hero, Clearing Index in the inversion section */
+.dscale { display: flex; justify-content: space-between; align-items: center; height: 20px; }
+.dscale i { flex: none; width: 7px; height: 7px; border-radius: 50%; background: var(--c); }
+.dscale i.me { width: 15px; height: 15px; box-shadow: 0 0 0 2.5px var(--bg), 0 0 0 4.5px var(--fg); }
+.hero .dscale { margin-top: 16px; }
+/* next 24 hours: one column of dots per hour */
+.rd { min-height: 50px; padding: 8px 12px; border-radius: 10px; background: color-mix(in srgb, var(--fg) 5%, transparent); }
+.rd .r1 { display: flex; align-items: center; gap: 8px; font-size: 14px; }
+.rd .q { margin-left: auto; display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+.rd .r2 { font-size: 12.5px; color: var(--fg-2); }
+.hours { gap: 0; height: auto; align-items: stretch; touch-action: pan-y; margin-top: 2px; }
+.hr { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 5px; height: 100%; padding: 0 0 4px; border: 0; border-radius: 6px; background: none; cursor: pointer; }
+.hr.sel { background: color-mix(in srgb, var(--fg) 10%, transparent); }
+.hr:focus-visible { outline: 2px solid var(--fg); outline-offset: -2px; }
+.hr i { flex: none; width: var(--d, 7px); height: var(--d, 7px); border-radius: 50%; background: var(--c); }
+.hr i.e { background: radial-gradient(circle, var(--track) 0 1.6px, transparent 2.1px); opacity: 1; }
+.hr .tg { position: absolute; left: 50%; transform: translateX(-50%); font-size: 10.5px; font-weight: 600; line-height: 1; color: var(--fg); }
+.hr .wxi { position: absolute; top: 0; left: 50%; transform: translateX(-50%); margin: 0; }
+.under { gap: 0; margin-top: 2px; } .under i { margin: 0 4px; border-radius: 2px; }
+.bestl { display: grid; grid-template-columns: repeat(24, minmax(0,1fr)); margin-top: -4px; font-size: 12.5px; font-weight: 600; text-align: center; }
+.mixrow { gap: 0; justify-items: center; margin-top: 2px; } .mixrow i { width: 5px; height: 5px; border-radius: 50%; }
+.sw i { width: 5px; height: 5px; border-radius: 50%; }
+/* inversion */
+.ci-l { font-size: 14px; color: var(--fg-2); } .ci-l b { color: var(--fg); font-weight: 600; }
+.ci-v { display: flex; align-items: baseline; gap: 10px; }
+.ci-v .n { font: 300 44px/1.05 Outfit, "Instrument Sans", sans-serif; letter-spacing: -.03em; }
+.ci-v .n small { font: 400 15px "Instrument Sans", sans-serif; letter-spacing: 0; color: var(--fg-2); }
+.ci-v .w { font-size: 16px; font-weight: 600; }
+.ci-v .s { margin-left: auto; font-size: 12.5px; color: var(--fg-2); }
+.ci .dscale { margin-top: 10px; }
+.ci-k { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); margin-top: 6px; font-size: 11.5px; line-height: 1.35; color: var(--fg-2); }
+.valley { margin-top: 14px; }
+.vstrip { gap: 0; justify-content: space-between; align-items: center; overflow: visible; border-radius: 0; }
+.vstrip i { flex: none; width: 3px; height: 3px; border-radius: 50%; }
+.cid { margin-top: 12px; }
+.cid-h { font-size: 12.5px; color: var(--fg-2); margin-bottom: 2px; }
+.cid .row { display: grid; grid-template-columns: 52px minmax(0,1fr) auto; align-items: center; gap: 10px; padding: 6px 0; font-size: 13.5px; }
+.cid .k { color: var(--fg-2); }
+.cid .dots { display: flex; gap: 4px; } .cid .dots i { width: 7px; height: 7px; border-radius: 50%; background: var(--c); } .cid .dots i.e { background: var(--track); }
+.cid .v { text-align: right; white-space: nowrap; } .cid .v span { color: var(--fg-2); }
+/* ozone and smoke sparklines as dots */
+.spark .sd { fill: var(--c); opacity: .55; }
+/* 3-day outlook */
+.tnote { font-size: 13.5px; line-height: 1.45; color: var(--fg-15); } .tnote b { font-weight: 600; color: var(--fg); }
+.key { width: 7px; height: 7px; border: 0; border-radius: 50%; background: var(--c); flex: none; }
+.key.dash { background: none; border: 1.5px solid var(--c); }
+.key.band { width: 16px; height: 9px; border-radius: 2px; background: color-mix(in srgb, var(--s-1) 24%, transparent); }
+.tip .key { background: currentColor; } .tip .key.dash { background: none; border-color: currentColor; }
+@media (min-width: 1000px) {
+  .wrap { padding-bottom: 32px; }
+  .side, .mainc { gap: 34px; }
+  .dscale i { width: 8px; height: 8px; } .dscale i.me { width: 17px; height: 17px; }
+  #hero:has(> .empty) { min-height: 460px; }
+  .cid { max-width: 440px; }
+}
+
+/* ---------- feedback ask: a small card, once, on a second day's visit ---------- */
+.ask { position: fixed; z-index: 25; left: 16px; right: 16px; bottom: max(16px, calc(env(safe-area-inset-bottom) + 8px)); max-width: 380px; margin: 0 auto; padding: 16px 18px; border-radius: 16px; background: var(--sheet); color: var(--fg); box-shadow: 0 10px 30px rgba(10,16,24,.18), 0 0 0 1px var(--line); animation: up .22s ease-out; }
+.ask[hidden] { display: none; }
+.ask-h { margin: 0; font-size: 15px; font-weight: 600; }
+.ask-p { margin: 4px 0 0; font-size: 13.5px; line-height: 1.45; color: var(--fg-2); }
+.ask-b { display: flex; align-items: center; gap: 18px; margin-top: 12px; }
+.ask-go { min-height: 40px; padding: 0 16px; border: 0; border-radius: 10px; background: var(--fg); color: var(--sheet); font: 500 14px "Instrument Sans", sans-serif; cursor: pointer; }
+.ask button:focus-visible { outline: 2px solid var(--fg); outline-offset: 2px; }
+@media (min-width: 1000px) { .ask { left: auto; right: 24px; bottom: 24px; width: 340px; margin: 0; } }
 </style>
 </head>
 <body>
@@ -433,6 +519,7 @@ dialog#fb { max-width: 560px; }
           <button type="button" data-m="pm" aria-pressed="true">PM2.5</button>
           <button type="button" data-m="o3" aria-pressed="false">Ozone</button>
         </div>
+        <p class="tnote">Timing only. For how bad a day will be, use the <b>official forecast</b>.</p>
         <div class="legend" id="legend"></div>
         <div class="chart" id="chart"></div>
       </section>
@@ -547,10 +634,22 @@ dialog#fb { max-width: 560px; }
     </div>
   </form>
 </dialog>
+<div class="ask" id="ask" role="dialog" aria-labelledby="ask-h" aria-describedby="ask-p" hidden>
+  <p class="ask-h" id="ask-h">Finding Salt Lake Air useful?</p>
+  <p class="ask-p" id="ask-p">A quick note on what works or what's missing helps decide what comes next.</p>
+  <div class="ask-b"><button class="ask-go" id="ask-go" type="button">Send feedback</button><button class="lk" id="ask-no" type="button">Not now</button></div>
+</div>
 <div class="tip" id="tip"></div>
 
 <script>
 "use strict";
+/* ============================================================ demo mode
+   ?demo=good|moderate|unhealthy loads a saved sample (demo-*.json) and freezes the clock at the time
+   that sample was made, so every "now", "next 24 hours" and "today" lines up with the sample. */
+const DEMO = /^(good|moderate|unhealthy)$/.test(new URLSearchParams(location.search).get("demo") || "") ? new URLSearchParams(location.search).get("demo") : null;
+let DEMO_OFF = 0;
+if (DEMO) { const R = Date; window.REAL_NOW = () => R.now();
+  window.Date = class extends R { constructor(...a) { if (a.length) super(...a); else super(R.now() + DEMO_OFF); } static now() { return R.now() + DEMO_OFF; } }; }
 /* ============================================================ AQI math */
 const CATS = [
   { max: 9.0,   name: "Good",                           short: "Good",      i: 1, lo: 0,   hi: 50 },
@@ -819,7 +918,7 @@ function drawPicker() {
 function closePicker(save) {
   if (save && PICK) { WANT = PICK; store.set(PICK); track(`station-picked/${PICK}`, "Station picked"); }
   else if (FIRST && SEL) store.set(SEL);  // dismissed on a first visit: keep the default so the picker doesn't reopen every time
-  FIRST = false; picker.close(); if (save) renderAll();
+  FIRST = false; picker.close(); renderAll();
 }
 $("stn-btn").addEventListener("click", openPicker);
 $("pk-x").addEventListener("click", () => closePicker(false));
@@ -830,6 +929,7 @@ picker.addEventListener("cancel", e => { e.preventDefault(); closePicker(false);
 /* ============================================================ usage counts (GoatCounter events, anonymous) */
 const GCQ = [];
 function track(path, title) {
+  if (DEMO) return;
   const gc = window.goatcounter;
   if (gc && gc.count) { try { gc.count({ path, title: title || path, event: true }); } catch (e) {} }
   else if (GCQ.length < 20) GCQ.push([path, title]);
@@ -985,19 +1085,22 @@ function renderHero() {
   const nc = nowcast(ser.map(r => r.pm25)), aqi = pmAqi(nc ?? last.pm25), cat = aqiCat(aqi ?? 0), idx = cat.i - 1;
   STATE = airState(aqi, ciToday(), smokePeak(), last.pm25_24h != null && aqi != null ? aqi - pmAqi(last.pm25_24h) : 0);
   document.documentElement.dataset.q = cat.i;
+  if (DEMO) { const p = el("p", "demo"), a = el("a", "", "See live air"); a.href = location.pathname;
+    p.append(`Demo: a sample ${DEMO} day`, a); host.appendChild(p); }
+  else if (FIRST) { const p = el("p", "first"), b = el("button", "lk", "Pick yours"); b.type = "button"; b.addEventListener("click", openPicker);
+    p.append(`Showing ${st.name}, the default station.`, b); host.appendChild(p); }
   renderAlerts(host);
 
   $("stn-t").textContent = `${fHL(new Date(last.t))} reading`;
-  const a = el("div", "aqi"), r = el("div", "r");
-  const cw = el("div", "cw" + (cat.name.length > 16 ? " long" : ""), cat.name); cw.style.color = qv(cat.i);
+  const a = el("h1", "aqi"), r = el("div", "r");
+  const cw = el("div", "cw" + (cat.name.length > 16 ? " long" : ""), cat.name); cw.style.color = `var(--q${cat.i}t)`;
   const late = Date.now() - new Date(last.t) > 3 * HOUR, lbl = el("div", "lbl", `US AQI · ${fHL(new Date(last.t))} reading`);
   if (late) { const w = el("span", "late", ` · ${ago(new Date(last.t)).replace(" ago", "")} old`); lbl.appendChild(w); } lbl.appendChild(infoBtn("About this number", "The US AQI turns fine-particle pollution (PM2.5) into a 0–500 scale. Under EPA's 2024 update, 0–50 (Good) means 9.0 µg/m³ or less. This page uses EPA's NowCast, a weighted average of recent hours, so the number reacts quickly when the air changes."));
   r.append(cw, lbl); a.append(el("div", "num", aqi ?? "—"), r); host.appendChild(a);
-  const sc = el("div", "scale"); sc.setAttribute("role", "img"); sc.setAttribute("aria-label", `AQI scale from 0 to 500 in six bands. The current value, ${aqi}, is in the ${cat.name} band.`);
-  const segs = el("div", "segs"); SCALE.forEach(c => { const i = el("i"); i.style.background = c; segs.appendChild(i); });
-  if (aqi != null) { const mk = el("div", "mark"), frac = Math.min(1, Math.max(0, (aqi - cat.lo) / (cat.hi - cat.lo)));
-    mk.style.left = Math.max(1, Math.min(99, (idx + frac) / 6 * 100)) + "%"; sc.appendChild(mk); }
-  sc.appendChild(segs);
+  // AQI scale as 30 dots, five per band; the ringed dot is now
+  const sc = el("div", "dscale"); sc.setAttribute("role", "img"); sc.setAttribute("aria-label", `AQI scale from 0 to 500 in six bands. The current value, ${aqi}, is in the ${cat.name} band.`);
+  const mk = aqi == null ? -1 : Math.min(29, Math.floor((idx + Math.min(1, Math.max(0, (aqi - cat.lo) / (cat.hi - cat.lo)))) / 6 * 30));
+  for (let k = 0; k < 30; k++) { const i = el("i", k === mk ? "me" : k < mk ? "on" : ""); i.style.setProperty("--c", qv(Math.floor(k / 5) + 1)); sc.appendChild(i); }
   const sl = el("div", "scale-l"); sl.setAttribute("aria-hidden", "true"); CATS.forEach(k => sl.appendChild(el("div", "", k.lo)));
   host.append(sc, sl);
 
@@ -1029,7 +1132,16 @@ function renderValley() {
   if (!steps.length || !ciToday()) { host.appendChild(el("div", "empty", "Inversion data unavailable right now.")); return; }
   const fc = ((V.noaa && V.noaa.pm25 && V.noaa.pm25.series) || []).map(r => ({ ms: new Date(r.t).getTime(), v: r.v }));
   const official = d => ((D.clearing && D.clearing.days) || []).find(x => x.date === d && x.index != null);
-  const fig = el("div", "valley"), cap = el("div", "vcap"), when = el("div", "vwhen");
+  // the Clearing Index for the chosen hour, with its scale right under the number
+  const ci = el("div", "ci"), lab = el("div", "ci-l"), row = el("div", "ci-v"), num = el("span", "n"), word = el("span", "w"), srcE = el("span", "s");
+  const sc = el("div", "dscale"), key = el("div", "ci-k"); sc.setAttribute("role", "img");
+  key.setAttribute("aria-hidden", "true"); key.innerHTML = "<span>Very poor<br>0–249</span><span>Poor<br>250–499</span><span>Moderate<br>500–999</span><span>Excellent<br>1,000+</span>";
+  row.append(num, word, srcE); ci.append(lab, row, sc, key);
+  const ciDots = v => { sc.textContent = "";
+    const f = v < 250 ? .25 * v / 250 : v < 500 ? .25 + .25 * (v - 250) / 250 : v < 1000 ? .5 + .25 * (v - 500) / 500 : .75 + .25 * Math.min(1, (v - 1000) / 1000), m = Math.min(31, Math.floor(f * 32));
+    for (let k = 0; k < 32; k++) { const i = el("i", k === m ? "me" : k < m ? "on" : ""); i.style.setProperty("--c", qv([4, 3, 2, 1][k >> 3])); sc.appendChild(i); }
+    sc.setAttribute("aria-label", `Clearing Index scale: under 250 very poor, 250 to 499 poor, 500 to 999 moderate, 1,000 and up excellent. This hour is ${ciCat(v)[2]}.`); };
+  const fig = el("div", "valley"), cap = el("div", "vcap");
   const ctl = el("div", "vctl"), strip = el("div", "vstrip"), slider = document.createElement("input"), ticks = el("div", "vticks");
   slider.type = "range"; slider.min = 0; slider.max = steps.length - 1; slider.value = 0; slider.className = "vslide";
   slider.setAttribute("aria-label", "Time, over the next three days");
@@ -1037,24 +1149,39 @@ function renderValley() {
   steps.forEach((r, i) => { const d = new Date(r.ms); if (d.getHours() === 0) { const t = el("span", "", d.toLocaleDateString([], { weekday: "short" })); t.style.left = (i / (steps.length - 1) * 100) + "%"; ticks.appendChild(t); } });
   ctl.append(strip, slider, ticks);
   const draw = i => {
-    const r = steps[i], isNow = i === 0, d = new Date(r.ms), day = r.t.slice(0, 10), off = official(day);
-    const ci = isNow ? ciToday().ci : off ? off.index : ciOf(r), ft = r.blh_m * 3.28084, trapped = ci != null && ci < 500 && ft < 4000;
+    const r = steps[i], isNow = i === 0, d = new Date(r.ms), dayK = r.t.slice(0, 10), off = official(dayK);
+    const v = isNow ? ciToday().ci : off ? off.index : ciOf(r), ft = r.blh_m * 3.28084, trapped = v != null && v < 500 && ft < 4000;
     const f = fc.find(p => Math.abs(p.ms - r.ms) < HOUR / 2), col = isNow || !f || f.v == null ? qv(+(document.documentElement.dataset.q || 1)) : qv(pmCat(f.v).i);
-    const ciTxt = ci == null ? "" : `Clearing Index ${ci >= 1000 ? "1,000+" : (off || isNow) && !(isNow && !ciToday().official) ? ci.toLocaleString() : "about " + ciFmt(ci)} · ${ciCat(ci)[2]}`;
-    $("vmeta").textContent = ciTxt;
-    when.textContent = isNow ? "Now" : fDH(d);
+    const exact = isNow ? ciToday().official : !!off;
+    lab.textContent = ""; lab.append(el("b", "", isNow ? "Now" : fDH(d)), " · Clearing Index");
+    num.textContent = "";
+    if (v == null) num.textContent = "—";
+    else if (v >= 1000) num.textContent = "1,000+";
+    else if (exact) num.textContent = Math.round(v).toLocaleString();
+    else { num.appendChild(el("small", "", "about ")); num.append(ciFmt(v)); }
+    const lv = v == null ? 1 : ciCat(v)[1]; word.textContent = v == null ? "" : ciCat(v)[2][0].toUpperCase() + ciCat(v)[2].slice(1); word.style.color = `var(--q${lv}t)`;
+    srcE.textContent = v == null ? "" : exact ? (isNow ? "NWS official" : "NWS daily value") : "model estimate";
+    if (v != null) ciDots(v);
     fig.innerHTML = valleySvg(trapped, ft, col, Math.max(300, Math.round(host.clientWidth || 354)));
     fig.classList.toggle("open", !trapped);
     cap.textContent = "";
-    if (isNow) { const word = STATE ? STATE.word : ciCat(ci)[0];
+    if (isNow) { const w = STATE ? STATE.word : ciCat(v)[0];
       const why = trapped && STATE && STATE.word === "Not yet" ? "There's a lid, but the air under it is still clean. It usually takes a few calm days for pollution to build up."
         : trapped ? "Warm air above is acting like a lid, so pollution builds up under it until wind or a storm mixes it out."
-        : ci >= 1000 ? "Strong mixing and wind are carrying pollution up and out of the valley." : "Weak mixing, but the air isn't trapped right now.";
-      cap.append(dot(qv(STATE ? STATE.lvl : ciCat(ci)[1])), el("b", "", word), " " + why);
-    } else cap.append(el("b", "", trapped ? "Still trapped. " : ci >= 1000 ? "Clearing out. " : "Mixing. "), trapped ? "The lid holds, so pollution keeps building." : ci >= 1000 ? "Wind and mixing carry pollution out of the valley." : "No lid, though mixing is weak.");
+        : v >= 1000 ? "Strong mixing and wind are carrying pollution up and out of the valley." : "Weak mixing, but the air isn't trapped right now.";
+      cap.append(dot(qv(STATE ? STATE.lvl : ciCat(v)[1])), el("b", "", w + "."), " " + why);
+    } else cap.append(el("b", "", trapped ? "Still trapped. " : v >= 1000 ? "Clearing out. " : "Mixing. "), trapped ? "The lid holds, so pollution keeps building." : v >= 1000 ? "Wind and mixing carry pollution out of the valley." : "No lid, though mixing is weak.");
   };
   slider.addEventListener("input", () => draw(+slider.value));
-  host.append(when, fig, ctl, cap); draw(0);
+  // one official number a day from NWS, as a row of ten dots (one per 100)
+  const days = ((D.clearing && D.clearing.days) || []).filter(d => d.index != null && d.date >= ymd(new Date())).slice(0, 4), cid = el("div", "cid");
+  if (days.length) { cid.appendChild(el("div", "cid-h", "Daily, from the National Weather Service"));
+    for (const d of days) { const rw = el("div", "row"), dt = new Date(d.date + "T12:00"), k = d.date === ymd(new Date()) ? "Today" : dt.toLocaleDateString([], { weekday: "short" });
+      const dots = el("span", "dots"), n = Math.max(1, Math.round(Math.min(d.index, 1000) / 100)); dots.setAttribute("aria-hidden", "true");
+      for (let j = 0; j < 10; j++) { const i = el("i", j < n ? "" : "e"); i.style.setProperty("--c", qv(ciCat(d.index)[1])); dots.appendChild(i); }
+      const val = el("span", "v"); val.append(el("b", "", d.index >= 1000 ? "1,000+" : d.index.toLocaleString()), " ", el("span", "", ciCat(d.index)[2]));
+      rw.append(el("span", "k", k), dots, val); cid.appendChild(rw); } }
+  host.append(ci, fig, ctl, cap, cid); draw(0);
 }
 function valleySvg(trapped, ft, col, W = 354) {
   const H = 150, g = 126, top = 14, scale = f => g - Math.sqrt(Math.min(f, 7000) / 7000) * (g - top); // square root, so low lids stay visible
@@ -1108,13 +1235,14 @@ const IC = {
   sun: '<circle cx="8" cy="8" r="2.6"/><path d="M8 1.8v1.5M8 12.7v1.5M1.8 8h1.5M12.7 8h1.5M3.6 3.6l1 1M11.4 11.4l1 1M3.6 12.4l1-1M11.4 4.6l1-1"/>',
 };
 function spark(pts, lims, max) {
-  // tiny 24-hour line; dashed guide where the pollutant starts to matter
+  // tiny 24-hour dot line; dashed guide where the pollutant starts to matter
   const W = 96, H = 26, n = pts.length; if (n < 2) return null;
-  const mx = Math.max(max, ...pts.map(p => p.v)) * 1.1, X = i => i / (n - 1) * W, Y = v => H - 2 - v / mx * (H - 4);
-  const d = pts.map((p, i) => `${i ? "L" : "M"}${X(i).toFixed(1)} ${Y(p.v).toFixed(1)}`).join(""), pk = pts.reduce((a, p, i) => p.v > pts[a].v ? i : a, 0);
+  const mx = Math.max(max, ...pts.map(p => p.v)) * 1.1, X = i => 2 + i / (n - 1) * (W - 4), Y = v => H - 3 - v / mx * (H - 6);
+  const pk = pts.reduce((a, p, i) => p.v > pts[a].v ? i : a, 0);
   const sv = S("svg", { viewBox: `0 0 ${W} ${H}`, class: "spark", "aria-hidden": "true" });
   sv.innerHTML = lims.filter(l => l < mx).map(l => `<line x1="0" x2="${W}" y1="${Y(l).toFixed(1)}" y2="${Y(l).toFixed(1)}" class="sg"/>`).join("")
-    + `<path d="${d}L${W} ${H}L0 ${H}Z" class="sf"/><path d="${d}" class="sl"/><circle cx="${X(pk).toFixed(1)}" cy="${Y(pts[pk].v).toFixed(1)}" r="2.2" class="sp"/>`;
+    + pts.map((p, i) => i === pk ? "" : `<circle cx="${X(i).toFixed(1)}" cy="${Y(p.v).toFixed(1)}" r="1.5" class="sd"/>`).join("")
+    + `<circle cx="${X(pk).toFixed(1)}" cy="${Y(pts[pk].v).toFixed(1)}" r="2.4" class="sp"/>`;
   return sv;
 }
 function renderConds() {
@@ -1138,140 +1266,154 @@ function renderConds() {
 }
 
 /* ============================================================ 24h */
+function mixWord(ci) { return ci == null ? "" : ci < 250 ? "Air trapped" : ci < 500 ? "Weak mixing" : ci < 1000 ? "Some mixing" : "Mixing well"; }
 function render24() {
   const host = $("h24"), bestEl = $("best"); host.textContent = ""; bestEl.textContent = "";
-  host.style.cssText = "display:flex;flex-direction:column;gap:10px";
+  host.style.cssText = "display:flex;flex-direction:column;gap:8px";
   const hours = next24(), { src, bc, ratio } = hourlyPM();
   if (hours.filter(x => x.v != null).length < 6) { host.appendChild(el("div", "empty", "Hourly forecast unavailable right now.")); return; }
   hours.forEach(x => { x.aqi = pmAqi(x.v); });
-  const max = Math.max(60, ...hours.map(x => x.aqi ?? 0)) * 1.06;
+  // each dot is 10 AQI on ordinary days; bigger steps keep bad days from growing a tower of dots
+  const top = Math.max(...hours.map(x => x.aqi ?? 0)), step = top <= 80 ? 10 : top <= 160 ? 20 : 50;
+  const rows = Math.max(6, Math.ceil(top / step)), dsz = innerWidth >= 1000 ? 9 : 7, pitch = dsz + 5;
+  bestEl.textContent = `1 dot = ${step} AQI`;
   const { best } = bestWorst(hours);
-  if (best) { bestEl.append("Best "); bestEl.appendChild(el("b", "", spanP(best.t))); }
-
-  const grid = el("div", "hours"), under = el("div", "under"), mix = el("div", "mixrow"), axis = el("div", "axis");
+  const day = hours.map((x, i) => ({ x, i })).filter(o => o.x.v != null && new Date(o.x.t).getHours() >= 6 && new Date(o.x.t).getHours() <= 20);
+  const peak = day.length ? day.reduce((a, b) => b.x.aqi > a.x.aqi ? b : a).i : -1;
+  const low = best ? (hours[best.i + 1].aqi < hours[best.i].aqi ? best.i + 1 : best.i) : -1;
   const ms = metSer(), wxAt = t => { const tt = new Date(t).getTime(); return ms.find(p => Math.abs(p.ms - tt) < HOUR / 2); };
 
-  grid.setAttribute("role", "img"); grid.setAttribute("aria-label", "Hourly AQI forecast for the next 24 hours" + (best ? `, lowest around ${spanP(best.t)}` : ""));
+  const rd = el("div", "rd"); rd.setAttribute("aria-live", "polite");
+  const grid = el("div", "hours"), under = el("div", "under"), bl = el("div", "bestl"), mix = el("div", "mixrow"), axis = el("div", "axis");
+  grid.style.height = rows * pitch + 22 + "px"; grid.style.setProperty("--d", dsz + "px");
+  const cols = [];
+  const show = i => {
+    cols.forEach((c, k) => c.classList.toggle("sel", k === i));
+    const x = hours[i], d = new Date(x.t); rd.textContent = "";
+    const r1e = el("div", "r1"), q = el("span", "q"); r1e.appendChild(el("b", "", (i === 0 ? "Now · " : "") + fDH(d)));
+    if (x.v != null) { const c = pmCat(x.v); q.append(dot(qv(c.i)), el("b", "", `AQI ${x.aqi}`), " " + c.short); } else q.append("No forecast");
+    r1e.appendChild(q);
+    const parts = []; if (x.v != null) parts.push(`PM2.5 ${r1(x.v)} µg/m³`);
+    if (x.m && x.m.wind_mph != null) parts.push(`Wind ${Math.round(x.m.wind_mph)} mph`);
+    const ci = ciOf(x.m); if (ci != null) parts.push(mixWord(ci));
+    const w = wxAt(x.t); if (w && w.precip_pct != null && w.precip_pct >= 40) parts.push(`${w.precip_pct}% ${isSnow(w.code, w.temp_f) ? "snow" : "rain"}`);
+    rd.append(r1e, el("div", "r2", parts.join(" · ")));
+  };
   hours.forEach((x, i) => {
-    const d = new Date(x.t), c = pmCat(x.v), col = el("div", "hr" + (best && (i === best.i || i === best.i + 1) ? " best" : ""));
+    const c = x.v != null ? pmCat(x.v) : null, n = x.v != null ? Math.max(1, Math.round(x.aqi / step)) : 0;
+    const col = el("button", "hr" + (best && (i === best.i || i === best.i + 1) ? " best" : "")); col.type = "button";
+    col.setAttribute("aria-label", `${fDH(new Date(x.t))}, ${x.v != null ? `AQI ${x.aqi}, ${c.short}` : "no forecast"}`);
+    if (c) col.style.setProperty("--c", qv(c.i));
     const w0 = wxAt(x.t);
     if (w0 && w0.precip_pct != null && w0.precip_pct >= 40) { const wc = el("div", "wxi"); wc.setAttribute("aria-hidden", "true"); wc.appendChild(wIcon(isSnow(w0.code, w0.temp_f) ? "snow" : "rain")); col.appendChild(wc); }
-    if (x.v != null) { const b = el("div", "b"); b.style.height = Math.max(4, x.aqi / max * 100) + "%"; b.style.setProperty("--c", qv(c.i)); col.appendChild(b); }
-    const show = () => { const r = col.getBoundingClientRect(), rows = [];
-      grid.querySelectorAll(".hr.sel").forEach(e => e.classList.remove("sel")); col.classList.add("sel");
-      if (x.v != null) { rows.push({ dot: qv(c.i), label: c.short, value: `AQI ${x.aqi}` }); rows.push({ label: "PM2.5", value: `${r1(x.v)} µg/m³` });
-        if (x.raw != null && Math.abs(x.raw - x.v) >= 0.5) rows.push({ label: "Model before adjusting", value: `${r1(x.raw)} µg/m³` }); }
-      const ci = ciOf(x.m); if (ci != null) rows.push({ label: "Clearing Index, est.", value: `${ciFmt(ci)} · ${ciCat(ci)[2]}` });
-      if (x.m && x.m.wind_mph != null) rows.push({ label: "Wind", value: `${Math.round(x.m.wind_mph)} mph` });
-      const w = wxAt(x.t); if (w) { const [, wd] = wxOf(w.code, w.day); if (wd || w.temp_f != null) rows.push({ label: wd || "Weather", value: [w.temp_f != null ? Math.round(w.temp_f) + "°F" : "", w.precip_pct ? `${w.precip_pct}% ${isSnow(w.code, w.temp_f) ? "snow" : "rain"}` : ""].filter(Boolean).join(" · ") || "—" }); }
-      showTip(r.left + r.width / 2, r.top + 20, (i === 0 ? "Now · " : "") + fDH(d), rows); };
-    col.addEventListener("pointerenter", e => { if (e.pointerType === "mouse") show(); });
-    col.addEventListener("pointerleave", e => { if (e.pointerType === "mouse") { hideTip(); col.classList.remove("sel"); } });
-    col.addEventListener("click", show);
-    grid.appendChild(col);
-    const mi = el("i"); mi.style.opacity = mixOp(ciOf(x.m)); mix.appendChild(mi);
-
-    if (i % 3 === 0) axis.appendChild(el("div", i === 0 ? "now" : "", i === 0 ? "Now" : fH(d)));
+    for (let r = rows - 1; r >= 0; r--) col.appendChild(el("i", r < n ? "" : "e"));
+    if (x.v != null && (i === 0 || i === peak || i === low)) { const tg = el("span", "tg", x.aqi); tg.setAttribute("aria-hidden", "true"); tg.style.bottom = 4 + n * pitch + 2 + "px"; col.appendChild(tg); }
+    col.addEventListener("click", () => show(i));
+    col.addEventListener("pointerenter", e => { if (e.pointerType === "mouse") show(i); });
+    cols.push(col); grid.appendChild(col);
+    const mi = el("i"); mi.style.background = "var(--mix)"; mi.style.opacity = mixOp(ciOf(x.m)); mix.appendChild(mi);
+    if (i % 3 === 0) axis.appendChild(el("div", i === 0 ? "now" : "", i === 0 ? "Now" : fH(d0(x.t))));
   });
-  if (best) { const u = el("i"); u.style.gridColumn = `${best.i + 1} / span 2`; under.appendChild(u); }
+  // drag across the columns on a phone to scrub through the hours
+  grid.addEventListener("pointermove", e => { if (e.pointerType === "mouse" || !e.buttons) return;
+    const r = grid.getBoundingClientRect(); show(Math.max(0, Math.min(23, Math.floor((e.clientX - r.left) / r.width * 24)))); });
+  if (best) { const u = el("i"); u.style.gridColumn = `${best.i + 1} / span 2`; under.appendChild(u);
+    const s = el("span", "", "Best " + spanP(best.t)); s.style.gridColumn = `${Math.max(1, Math.min(best.i - 1, 19))} / span 6`; bl.appendChild(s); }
   mix.setAttribute("aria-hidden", "true"); under.setAttribute("aria-hidden", "true");
-  const foot = el("div", "foot small"), sw = el("span", "sw"); sw.append(el("i"), "Trapped air"); foot.appendChild(sw);
-  $("i24").dataset.info = `Bars are AQI from the hourly PM2.5 forecast (${src === "NOAA" ? "NOAA" + (bc ? ", bias-corrected" : "") : src === "CAMS" ? "CAMS" : "NOAA, gaps filled by CAMS"}). ${ratio ? `The first hours are adjusted toward what the station is measuring now (the model was running ${ratio < 1 ? Math.round(1 / ratio * 10) / 10 + "× high" : Math.round(ratio * 10) / 10 + "× low"}), fading back to the model over 12 hours. ` : ""}Taller is worse; color is the AQI category. The darker pair is the best 2-hour window between 6 AM and 8 PM. The strip underneath is trapped air: darker means less mixing. Tap a bar for details.`;
-  host.append(grid, under, mix, axis, foot);
+  const foot = el("div", "foot small"), sw = el("span", "sw"); sw.append(el("i"), "Trapped air, darker is less mixing"); foot.appendChild(sw);
+  $("i24").dataset.info = `Each column is an hour and each dot is ${step} AQI, from the hourly PM2.5 forecast (${src === "NOAA" ? "NOAA" + (bc ? ", bias-corrected" : "") : src === "CAMS" ? "CAMS" : "NOAA, gaps filled by CAMS"}). ${ratio ? `The first hours are adjusted toward what the station is measuring now (the model was running ${ratio < 1 ? Math.round(1 / ratio * 10) / 10 + "× high" : Math.round(ratio * 10) / 10 + "× low"}), fading back to the model over 12 hours. ` : ""}Color is the AQI category. The darker pair is the best 2-hour window between 6 AM and 8 PM. The dots underneath show trapped air: darker means less mixing. Tap or drag across the columns to see each hour.`;
+  host.append(rd, grid, under, bl, mix, axis, foot);
+  show(0);
 }
+const d0 = t => new Date(t);
 
 /* ============================================================ trend chart */
 function nice(raw) { const p = 10 ** Math.floor(Math.log10(Math.max(raw, 1e-6))), n = raw / p; return (n <= 1 ? 1 : n <= 2 ? 2 : n <= 2.5 ? 2.5 : n <= 5 ? 5 : 10) * p; }
-function chart(host, { series, bands, refs = [], unit, x0, x1, H, strip }) {
+function chart(host, { series, bands, refs = [], unit, x0, x1, H, strip, range = [] }) {
   host.textContent = "";
-  const vals = series.flatMap(s => s.points.filter(p => p.t >= x0 && p.t <= x1 && p.v != null).map(p => p.v));
+  const vals = series.flatMap(s => s.points.filter(p => p.t >= x0 && p.t <= x1 && p.v != null).map(p => p.v)).concat(range.filter(p => p.t >= x0 && p.t <= x1).map(p => p.hi));
   if (!vals.length) { host.appendChild(el("div", "empty", "No data available right now.")); return; }
-  const W = Math.max(host.clientWidth, 280), m = { l: 30, r: 2, t: 14, b: strip ? 38 : 24 }, iw = W - m.l - m.r, ih = H - m.t - m.b;
+  const W = Math.max(host.clientWidth, 280), m = { l: 34, r: 2, t: 14, b: strip ? 38 : 24 }, iw = W - m.l - m.r, ih = H - m.t - m.b;
   // clean days: keep at least 0–20 µg/m³ on the PM2.5 chart, so small model wiggles near zero don't look dramatic
   let yM = Math.max(...vals, ...refs.map(r => r.v * 1.15), METRIC === "pm" ? 20 : 0); const st = nice(yM / 4); yM = Math.ceil(yM * 1.05 / st) * st;
   const x = t => m.l + (t - x0) / (x1 - x0) * iw, y = v => m.t + ih - v / yM * ih;
   const svg = S("svg", { viewBox: `0 0 ${W} ${H}`, height: H, role: "img", "aria-label": `${series.map(s => s.name).join(", ")} over three days, in ${unit}` });
   if (bands) { let lo = 0; for (const b of bands) { if (lo >= yM) break; const hi = Math.min(b.max, yM);
     if (b.i > 1) svg.appendChild(S("rect", { x: m.l, width: iw, y: y(hi), height: y(lo) - y(hi), fill: qv(b.i), "fill-opacity": .1 }));
-    if (y(lo) - y(hi) > 15) { const t = S("text", { x: m.l + iw - 4, y: y(hi) + 13, "text-anchor": "end" }); t.textContent = b.short; svg.appendChild(t); } lo = b.max; } }
-  for (let v = 0; v <= yM + 1e-9; v += st) {
-    svg.appendChild(S("line", { x1: m.l, x2: m.l + iw, y1: y(v), y2: y(v), stroke: "var(--line)", "stroke-width": 1 }));
-    const t = S("text", { x: m.l - 8, y: y(v) + 3.5, "text-anchor": "end" }); t.textContent = v >= 1000 ? v / 1000 + "k" : v; svg.appendChild(t); }
+    // band names carry their range in µg/m³, so the edges can be read without the axis
+    if (y(lo) - y(hi) > 15) { const t = S("text", { x: m.l + iw - 4, y: y(hi) + 13, "text-anchor": "end" }); t.textContent = `${b.short} ${lo ? (lo + .1).toFixed(1) : 0}–${b.max.toFixed(1)}`; t.setAttribute("style", "paint-order: stroke; stroke: var(--bg); stroke-width: 4px; stroke-linejoin: round"); svg.appendChild(t); } lo = b.max; } }
+  // PM2.5: gridlines at the AQI band edges; anything else: even steps
+  const ticks = bands ? [0, ...PM_BP.slice(1).filter(v => v < yM * .97), yM] : Array.from({ length: Math.round(yM / st) + 1 }, (_, k) => k * st);
+  for (const v of ticks) { const edge = bands && v > 0 && v < yM;
+    svg.appendChild(S("line", { x1: m.l, x2: m.l + iw, y1: y(v), y2: y(v), stroke: edge ? "var(--fg-2)" : "var(--line)", "stroke-width": 1, "stroke-dasharray": edge ? "4 3" : "none", "stroke-opacity": edge ? .7 : 1 }));
+    const t = S("text", { x: m.l - 7, y: y(v) + 3.5, "text-anchor": "end" }); t.textContent = v >= 1000 ? v / 1000 + "k" : Math.round(v * 10) / 10; if (edge) t.style.fontWeight = 600; svg.appendChild(t); }
   const f = new Date(x0); f.setMinutes(0, 0, 0);
   for (let t = f.getTime(); t <= x1; t += HOUR) { const d = new Date(t), h = d.getHours(); if (h !== 0 && h !== 12) continue;
     const X = x(t); if (X < m.l + 14 || X > m.l + iw - 14) continue;
     if (h === 0) svg.appendChild(S("line", { x1: X, x2: X, y1: m.t, y2: m.t + ih + (strip ? 14 : 0), stroke: "var(--line)" }));
-    const tx = S("text", { x: X, y: H - 5, "text-anchor": "middle" }); tx.textContent = h === 0 ? d.toLocaleDateString([], { weekday: "short" }) : "noon"; svg.appendChild(tx); }
+    const tx = S("text", { x: X, y: H - 5, "text-anchor": "middle" }); tx.textContent = h === 0 ? d.toLocaleDateString([], { weekday: "short" }) : "noon"; if (h === 0) tx.style.fontWeight = 600; svg.appendChild(tx); }
   for (const r of refs) { svg.appendChild(S("line", { x1: m.l, x2: m.l + iw, y1: y(r.v), y2: y(r.v), stroke: "var(--fg-2)", "stroke-dasharray": "3 4", "stroke-opacity": .7 }));
     const t = S("text", { x: m.l + 6, y: y(r.v) - 6 }); t.textContent = r.label; svg.appendChild(t); }
   const now = Date.now();
   svg.appendChild(S("rect", { x: m.l, y: m.t, width: Math.max(0, x(now) - m.l), height: ih, fill: "var(--fg)", "fill-opacity": .04 }));
+  const cid = "clip" + Math.random().toString(36).slice(2, 8), cp = S("clipPath", { id: cid }); cp.appendChild(S("rect", { x: m.l, y: m.t - 4, width: iw, height: ih + 8 })); svg.appendChild(cp);
+  // range between the two models: one shaded shape per unbroken run of hours
+  const R = range.filter(p => p.t >= x0 && p.t <= x1).sort((a, b) => a.t - b.t), runs = [];
+  for (const p of R) { const last = runs[runs.length - 1]; if (last && p.t - last[last.length - 1].t <= 1.5 * HOUR) last.push(p); else runs.push([p]); }
+  for (const run of runs) { if (run.length < 2) continue;
+    const d = run.map((p, i) => `${i ? "L" : "M"}${x(p.t).toFixed(1)},${y(p.hi).toFixed(1)}`).join("") + [...run].reverse().map(p => `L${x(p.t).toFixed(1)},${y(p.lo).toFixed(1)}`).join("") + "Z";
+    svg.appendChild(S("path", { d, fill: "var(--s-1)", "fill-opacity": .16, "clip-path": `url(#${cid})` })); }
   if (strip) { const hw = iw / ((x1 - x0) / HOUR);
     for (const r of strip) { const t = new Date(r.t).getTime(); const ci = ciOf(r); if (ci == null || t < x0 || t + HOUR > x1) continue;
       svg.appendChild(S("rect", { x: x(t), y: m.t + ih + 6, width: hw, height: 6, fill: "var(--mix)", opacity: mixOp(ci), "shape-rendering": "crispEdges" })); } }
-  // lines are clipped to the plot area, so a bad value can never draw outside the chart (seen on iPhone)
-  const cid = "clip" + Math.random().toString(36).slice(2, 8), cp = S("clipPath", { id: cid }); cp.appendChild(S("rect", { x: m.l, y: m.t - 3, width: iw, height: ih + 6 })); svg.appendChild(cp);
-  series.forEach(s => {
-    const P = s.points.filter(p => p.t >= x0 && p.t <= x1 && (p.v == null || Number.isFinite(+p.v))).sort((a, b) => a.t - b.t); let d = "", pen = false, prev = null;
-    for (const p of P) { if (p.v == null || (prev && p.t - prev > 2.5 * HOUR)) pen = false; if (p.v == null) { prev = p.t; continue; }
-      const px = x(p.t), py = Math.min(m.t + ih + 2, Math.max(m.t - 2, y(+p.v)));
-      if (!Number.isFinite(px) || !Number.isFinite(py)) { pen = false; continue; }
-      d += (pen ? "L" : "M") + px.toFixed(1) + "," + py.toFixed(1); pen = true; prev = p.t; }
-    const pa = { d, fill: "none", stroke: s.color, "stroke-width": s.w || 2, "stroke-linejoin": "round", "stroke-linecap": "round", "clip-path": `url(#${cid})` }; if (s.dash) pa["stroke-dasharray"] = "4 4";
-    svg.appendChild(S("path", pa));
-  });
+  // every series is drawn as one dot per hour, clipped to the plot so a bad value can never land outside it
+  const g = S("g", { "clip-path": `url(#${cid})` }); svg.appendChild(g);
+  series.forEach(s => { for (const p of s.points) { if (p.v == null || p.t < x0 || p.t > x1 || !Number.isFinite(+p.v)) continue;
+    const cx = x(p.t), cy = Math.min(m.t + ih + 3, Math.max(m.t - 3, y(+p.v)));
+    g.appendChild(S("circle", s.dash ? { cx: cx.toFixed(1), cy: cy.toFixed(1), r: 2.1, fill: "none", stroke: s.color, "stroke-width": 1.2 } : { cx: cx.toFixed(1), cy: cy.toFixed(1), r: s.r || 2.3, fill: s.color })); } });
   svg.appendChild(S("line", { x1: x(now), x2: x(now), y1: m.t - 8, y2: m.t + ih + (strip ? 14 : 0), stroke: "var(--fg)", "stroke-width": 1.5 }));
   const nt = S("text", { x: x(now) + 6, y: m.t + 2 }); nt.textContent = "Now"; nt.style.fill = "var(--fg)"; svg.appendChild(nt);
   const hair = S("line", { y1: m.t, y2: m.t + ih, stroke: "var(--fg-2)", opacity: 0 }); svg.appendChild(hair);
-  const dots = series.map(s => { const c = S("circle", { r: 4, fill: s.color, stroke: "var(--bg)", "stroke-width": 2, opacity: 0 }); svg.appendChild(c); return c; });
+  const dots = series.map(s => { const c = S("circle", { r: 4.5, fill: s.color, stroke: "var(--bg)", "stroke-width": 2, opacity: 0 }); svg.appendChild(c); return c; });
   const hit = S("rect", { x: m.l, y: 0, width: iw, height: H, fill: "transparent" }); svg.appendChild(hit);
   host.appendChild(svg);
-  const maps = series.map(s => new Map(s.points.filter(p => p.v != null).map(p => [hk(p.t), p])));
+  const maps = series.map(s => new Map(s.points.filter(p => p.v != null).map(p => [hk(p.t), p]))), rmap = new Map(R.map(p => [hk(p.t), p]));
   const leave = () => { hair.setAttribute("opacity", 0); dots.forEach(d => d.setAttribute("opacity", 0)); hideTip(); };
   const move = ev => { const rc = svg.getBoundingClientRect(), px = (ev.clientX - rc.left) * W / rc.width, t = x0 + (px - m.l) / iw * (x1 - x0);
     if (t < x0 || t > x1) return leave(); const h = Math.round(t / HOUR), tt = h * HOUR, rows = [];
     hair.setAttribute("x1", x(tt)); hair.setAttribute("x2", x(tt)); hair.setAttribute("opacity", .7);
     series.forEach((s, i) => { const p = maps[i].get(h); if (p) { dots[i].setAttribute("cx", x(p.t)); dots[i].setAttribute("cy", y(p.v)); dots[i].setAttribute("opacity", 1);
       rows.push({ key: s.color, dash: s.dash, label: s.name, value: unit === "index" ? ciFmt(p.v) : `${r1(p.v)} ${unit}` }); } else dots[i].setAttribute("opacity", 0); });
+    const rp = rmap.get(h); if (rp) rows.push({ label: "Model range", value: `${r1(rp.lo)}–${r1(rp.hi)} ${unit}` });
     showTip(rc.left + x(tt) * rc.width / W, rc.top + m.t, fDH(new Date(tt)), rows.length ? rows : [{ label: "No data", value: "" }]); };
   hit.addEventListener("pointermove", move); hit.addEventListener("pointerdown", move);
   hit.addEventListener("pointerleave", e => { if (e.pointerType === "mouse") leave(); });
 }
 function renderTrend() {
   if (!D) return;
-  const now = Date.now(), st = home(), n = V.noaa || {}, cams = (V.cams && V.cams.series) || [], met = (V.met && V.met.series) || [];
-  const x0 = now - 24 * HOUR, x1 = now + 60 * HOUR, s = []; let cfg = {}, note = "";
-  const obs = (k) => st && s.push({ name: "Measured", color: "var(--s-obs)", points: pts(st.series, k) });
-  if (METRIC === "pm") {
-    if (cams.length) s.push({ name: camsPM() === "pm25_adj" ? "CAMS, calibrated" : "CAMS model", color: "var(--s-2)", dash: true, w: 1.5, points: pts(cams, camsPM()) });
-    if (n.pm25) s.push({ name: "NOAA forecast", color: "var(--s-1)", points: pts(n.pm25.series, "v") });
-    obs("pm25");
-    cfg = { bands: CATS, unit: "µg/m³", strip: met }; note = "Black is what the station measured; blue and dashed gray are two forecast models. Shaded bands are AQI categories, and the bottom strip is trapped air. Models tend to under-predict deep inversions, so use DAQ for whether it's a bad day and these lines for when.";
-  } else if (METRIC === "o3") {
-    if (cams.length) s.push({ name: "CAMS model", color: "var(--s-2)", dash: true, w: 1.5, points: pts(cams, "o3") });
-    if (n.o3) s.push({ name: "NOAA forecast", color: "var(--s-1)", points: pts(n.o3.series, "v") });
-    obs("o3");
-    cfg = { refs: [{ v: 70, label: "70 ppb · sensitive groups" }], unit: "ppb" }; note = "Measured ozone against two forecast models. The dashed line at 70 ppb is where EPA's AQI turns orange (unhealthy for sensitive groups). Ozone peaks on sunny summer afternoons; in winter, PM2.5 matters more.";
-  } else {
-    // with official values, only draw the estimate on days NWS has rated, so every dashed point is calibrated
-    const est = met.filter(r => !CAL.size || CAL.has(r.t.slice(0, 10))).map(r => { const ci = ciOf(r); return { t: new Date(r.t).getTime(), v: ci == null ? null : Math.min(ci, 1100) }; });
-    const off = [];
-    for (const d of ((D.clearing && D.clearing.days) || []).filter(d => d.index != null)) {
-      const [y, mo, da] = d.date.split("-").map(Number), t0 = new Date(y, mo - 1, da).getTime();
-      for (let h = 0; h < 24; h++) off.push({ t: t0 + h * HOUR, v: Math.min(d.index, 1100) });
-      off.push({ t: t0 + 24 * HOUR - 1, v: Math.min(d.index, 1100) });
-    }
-    s.push({ name: off.length ? "Hourly estimate" : "Clearing Index, estimated", color: "var(--s-1)", dash: !!off.length, w: off.length ? 1.5 : 2, points: est });
-    if (off.length) s.push({ name: "NWS official", color: "var(--s-obs)", w: 2.5, points: off });
-    const top = Math.max(0, ...est.concat(off).filter(p => p.t >= now - 24 * HOUR && p.t <= now + 60 * HOUR && p.v != null).map(p => p.v));
-    cfg = { refs: [{ v: 500, label: "500 · inversion below" }].concat(top > 850 ? [{ v: 1000, label: "1,000 · clear above" }] : []), unit: "index" };
-    note = "Solid steps are the National Weather Service's official daily Clearing Index for this area: mixing depth (hundreds of feet) times the wind through that layer (knots). Under 500 is poor ventilation; 1,000 or more is excellent. The dashed line is an hourly estimate from weather models, scaled to match NWS. It drops every night as cold air settles on the valley floor."; }
+  const now = Date.now(), st = home(), n = V.noaa || {}, cams = (V.cams && V.cams.series) || [];
+  const x0 = now - 24 * HOUR, x1 = now + 60 * HOUR, s = [];
+  const key = METRIC === "o3" ? "o3" : "pm25", camsKey = METRIC === "o3" ? "o3" : camsPM(), unit = METRIC === "o3" ? "ppb" : "µg/m³";
+  const noaaS = n[key] ? pts(n[key].series, "v").filter(p => p.v != null) : [], camsS = pts(cams, camsKey).filter(p => p.v != null);
+  // NOAA leads; CAMS only appears as the range between the two models, and as hollow dots in hours NOAA doesn't cover
+  const nH = new Map(noaaS.map(p => [hk(p.t), p.v])), range = [], gap = [];
+  for (const p of camsS) { if (p.t < now - HOUR) continue; const nv = nH.get(hk(p.t));
+    if (nv != null) range.push({ t: p.t, lo: Math.min(nv, p.v), hi: Math.max(nv, p.v) }); else gap.push(p); }
+  if (gap.length) s.push({ name: "CAMS model", color: "var(--s-2)", dash: true, points: gap });
+  if (noaaS.length) s.push({ name: "NOAA forecast", color: "var(--s-1)", points: noaaS });
+  if (st) s.push({ name: "Measured", color: "var(--s-obs)", r: 2.6, points: pts(st.series, METRIC === "o3" ? "o3" : "pm25") });
+  const cfg = METRIC === "o3" ? { refs: [{ v: 70, label: "70 ppb · sensitive groups" }] } : { bands: CATS };
   const lg = $("legend"); lg.textContent = "";
-  const order = [...s].reverse();
-  for (const x of s.length > 1 ? order : []) { const sp = el("span"), k = el("span", "key" + (x.dash ? " dash" : "")); k.style.setProperty("--c", x.color); sp.append(k, x.name); lg.appendChild(sp); }
-  lg.style.display = s.length > 1 ? "" : "none";
-  $("i3").dataset.info = note; $("unit").textContent = cfg.unit === "index" ? "Clearing Index" : cfg.unit;
-  chart($("chart"), { series: s, x0, x1, H: innerWidth >= 1000 ? 300 : 230, ...cfg });
+  const item = (cls, c, txt) => { const sp = el("span"), k = el("span", "key" + cls); if (c) k.style.setProperty("--c", c); sp.append(k, txt); lg.appendChild(sp); };
+  if (st) item("", "var(--s-obs)", "Measured");
+  if (noaaS.length) item("", "var(--s-1)", "NOAA forecast");
+  if (range.length) item(" band", "", "Range between models");
+  if (gap.length) item(" dash", "var(--s-2)", "CAMS, where NOAA has no forecast");
+  $("i3").dataset.info = METRIC === "o3"
+    ? "Measured ozone and NOAA's hourly forecast, one dot per hour. The shaded band is the range between NOAA and the CAMS global model: wider means less certain. Hollow dots are CAMS, in hours NOAA doesn't cover. The dashed line at 70 ppb is where EPA's AQI turns orange. Ozone peaks on sunny summer afternoons; in winter, PM2.5 matters more."
+    : "Dark dots are what the station measured and blue dots are NOAA's hourly forecast. The shaded band is the range between NOAA and the CAMS global model (scaled to your station): wider means less certain. Hollow dots are CAMS, in hours NOAA doesn't cover. Shaded backgrounds are AQI categories, labeled in µg/m³. Models tend to under-predict deep inversions, so use the official forecast for whether it's a bad day and these dots for when.";
+  $("unit").textContent = METRIC === "o3" ? "Ozone, ppb" : "PM2.5, µg/m³";
+  chart($("chart"), { series: s, x0, x1, H: innerWidth >= 1000 ? 300 : 240, unit, range, ...cfg });
 }
 
 /* ============================================================ about */
@@ -1304,9 +1446,11 @@ function renderAll() {
 }
 async function load() {
   const ub = $("upd"); ub.classList.add("spin");
-  try { const r = await fetch("data.json?t=" + Date.now(), { cache: "no-store" }); if (!r.ok) throw new Error(r.status); D = await r.json(); normalize(); renderAll();
+  try { const r = await fetch(DEMO ? `demo-${DEMO}.json` : "data.json?t=" + Date.now(), { cache: "no-store" }); if (!r.ok) throw new Error(r.status); D = await r.json();
+    if (DEMO) DEMO_OFF = new Date(D.generated_at).getTime() + 25 * 6e4 - window.REAL_NOW();
+    normalize(); renderAll();
     if (!TRACKED) { TRACKED = true; if (SEL) track(`viewing/${SEL}`, "Station viewed"); if (standalone) track("open/home-screen", "Opened from Home Screen"); else if (qs.get("station") && qs.get("station") !== STORED0) track("open/shared-link", "Opened a shared link"); }
-    if (FIRST && !picker.open && D.stations.some(reporting)) openPicker(); }
+    if (FIRST && SEL && !DEMO) store.set(SEL); }  // remember the default, so the hint shows on the first visit only
   catch (e) { $("updated").textContent = "—"; }
   finally { setTimeout(() => ub.classList.remove("spin"), 400); }
 }
@@ -1317,10 +1461,39 @@ mBtns.forEach(b => b.addEventListener("click", () => { METRIC = b.dataset.m; tra
 markMetric();
 let rz, lastW = innerWidth;
 addEventListener("resize", () => { clearTimeout(rz); rz = setTimeout(() => { if (D && innerWidth !== lastW) { lastW = innerWidth; renderAll(); } }, 150); });
-addEventListener("scroll", () => { hideTip(); document.querySelectorAll(".hr.sel").forEach(x => x.classList.remove("sel")); }, { passive: true });
-document.addEventListener("pointerdown", e => { if (!e.target.closest(".hr, .chart")) { hideTip(); document.querySelectorAll(".hr.sel").forEach(x => x.classList.remove("sel")); } });
+addEventListener("scroll", hideTip, { passive: true });
+document.addEventListener("pointerdown", e => { if (!e.target.closest(".chart")) hideTip(); });
 document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && D && Date.now() - new Date(D.generated_at) > 45 * 6e4) load(); });
 setInterval(() => { if (D) setUpdated(); if (D && document.visibilityState === "visible" && Date.now() - new Date(D.generated_at) > 65 * 6e4) load(); }, 5 * 6e4);
+
+/* ============================================================ feedback ask
+   A small card asks for feedback twice at most: on someone's 2nd day visiting, and again on their 15th.
+   Each ask shows once. Neither shows in demo mode or for someone who has already sent feedback.
+   Preview: add ?ask (first ask) or ?ask=15 (second ask) to the address. */
+(function () {
+  const askEl = $("ask"), force = qs.has("ask") ? (qs.get("ask") === "15" ? 15 : 2) : 0;
+  const get = k => { try { return localStorage.getItem(k); } catch (e) { return null; } }, put = (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} };
+  if (!fbReady() || (DEMO && !force)) return;
+  let which = force;
+  if (!force) {
+    const today = ymd(new Date()); let v = {}; try { v = JSON.parse(get("sla-visits") || "{}"); } catch (e) {}
+    if (v.last !== today) { v = { n: (v.n || 0) + 1, last: today }; put("sla-visits", JSON.stringify(v)); }  // one visit per day
+    if (get("sla-fb-at")) return;                                    // already sent feedback: never ask
+    if (v.n >= 2 && !get("sla-ask")) which = 2;
+    else if (v.n >= 15 && !get("sla-ask-15")) which = 15;
+    else return;
+  }
+  const key = which === 15 ? "sla-ask-15" : "sla-ask", tag = which === 15 ? "-15" : "";
+  if (which === 15) { $("ask-h").textContent = "Thanks for coming back"; $("ask-p").textContent = "You've checked the air here on 15 different days. Anything that would make it more useful?"; }
+  const hide = how => { askEl.hidden = true; if (!force) put(key, how); track(`ask/${how}${tag}`, how === "feedback" ? "Feedback ask accepted" : "Feedback ask dismissed"); };
+  setTimeout(function show() {
+    if (document.visibilityState !== "visible" || document.querySelector("dialog[open]")) { setTimeout(show, 5000); return; }
+    askEl.hidden = false; if (!force) put(key, "shown"); track(`ask/shown${tag}`, "Feedback ask shown");
+  }, force ? 600 : 10000);
+  $("ask-go").addEventListener("click", () => { hide("feedback"); const r = document.querySelector('input[name="fb-type"][value="Idea"]'); if (r) r.checked = true; fbOpen(); });
+  $("ask-no").addEventListener("click", () => hide("dismissed"));
+  document.addEventListener("keydown", e => { if (e.key === "Escape" && !askEl.hidden) hide("dismissed"); });
+})();
 load();
 </script>
 
