@@ -198,6 +198,8 @@ a.t { color: var(--fg); }
 .src .d { font-size: 13px; color: var(--fg-2); margin-top: 2px; }
 .how { display: flex; flex-direction: column; gap: 12px; font-size: 14px; line-height: 1.55; color: var(--fg-15); }
 .how b { font-weight: 600; color: var(--fg); }
+.tour video { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; border-radius: 12px; background: #142130; }
+.tour p { margin-top: 10px; font-size: 14px; line-height: 1.55; color: var(--fg-15); }
 .links { display: flex; flex-wrap: wrap; gap: 8px 18px; font-size: 13px; }
 
 /* ------------------------------------------------------------------ monitor picker */
@@ -481,6 +483,13 @@ h1.aqi { font-size: 14px; font-weight: 400; }
 .ask button:focus-visible { outline: 2px solid var(--fg); outline-offset: 2px; }
 @media (min-width: 1000px) { .ask { left: auto; right: 24px; bottom: 24px; width: 340px; margin: 0; } }
 </style>
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"VideoObject","name":"Salt Lake Air: how it works",
+ "description":"A 30-second tour of Salt Lake Air: the current AQI at your Utah DAQ station, what good, moderate and unhealthy days look like, the hourly forecast, inversion forecasts and when they clear, and how to pick the station closest to you.",
+ "thumbnailUrl":"https://saltlakeair.org/salt-lake-air-tour.jpg",
+ "contentUrl":"https://saltlakeair.org/salt-lake-air-tour.mp4",
+ "uploadDate":"2026-11-27T19:30:00-07:00","duration":"PT30S"}
+</script>
 </head>
 <body>
 <div class="wrap">
@@ -535,6 +544,14 @@ h1.aqi { font-size: 14px; font-weight: 400; }
   <div class="sheet-in">
     <div class="sheet-top"><h2 id="about-h">About this data</h2>
       <button class="icon-btn" id="about-x" type="button" aria-label="Close"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M3.5 3.5l9 9M12.5 3.5l-9 9"/></svg></button>
+    </div>
+    <div class="tour">
+      <h3>How it works</h3>
+      <video id="tour" controls playsinline preload="none" width="1280" height="720" poster="salt-lake-air-tour.jpg" aria-label="30-second tour of Salt Lake Air" aria-describedby="tour-d">
+        <source src="salt-lake-air-tour.mp4" type="video/mp4">
+        <track kind="captions" src="salt-lake-air-tour.vtt" srclang="en" label="English">
+      </video>
+      <p id="tour-d">A 30-second tour: the current AQI at your Utah DAQ station, what good, moderate and unhealthy days look like, the hourly forecast, inversion forecasts and when they clear, and how to pick the station closest to you.</p>
     </div>
     <div>
       <h3>Status</h3>
@@ -1433,6 +1450,7 @@ for (const [id, t] of Object.entries({"ival": "Inversion reads the National Weat
 const sheet = $("about");
 $("about-btn").addEventListener("click", () => sheet.showModal());
 $("about-x").addEventListener("click", () => sheet.close());
+sheet.addEventListener("close", () => $("tour").pause());
 sheet.addEventListener("click", e => { if (e.target === sheet) sheet.close(); });
 
 function setUpdated() {
